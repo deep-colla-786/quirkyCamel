@@ -1,0 +1,132 @@
+/* HERO */
+.hero {
+  background: var(--blue);
+  color: var(--white);
+  padding-block: clamp(36px, 5vw, 64px);
+}
+.hero .wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 32px;
+  align-items: center;
+}
+.hero .kicker {
+  font-family: var(--mix);
+  font-size: clamp(20px, 2.4vw, 28px);
+  color: var(--white);
+  margin: 0 0 6px;
+}
+.hero h1 {
+  font-size: clamp(44px, 6.5vw, 90px);
+  margin-bottom: 20px;
+}
+.hero .sub {
+  max-width: 46ch;
+  color: #dbe6fb;
+  font-size: 16.5px;
+  margin: 0 0 26px;
+  line-height: 1.6;
+}
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+.trust span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  background: rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 0 1.5px rgba(196,229,57,0.35);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+.stage {
+  position: relative;
+  height: clamp(380px, 44vw, 540px);
+  border-radius: 32px;
+  background: radial-gradient(ellipse at 50% 65%, #3471d8 0%, var(--blue) 50%, var(--blue-deep) 100%);
+  box-shadow: inset 0 0 0 2px rgba(196,229,57,0.22);
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+}
+.stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.stage .hint {
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--lime);
+  text-transform: uppercase;
+  pointer-events: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 10;
+}
+.stage .hint i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lime);
+  animation: pulse 1.6s infinite;
+}
+@keyframes pulse {
+  50% { opacity: 0.25; }
+}
+
+.stage .tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--white);
+  color: var(--blue-ink);
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  transform: translate(-50%, -120%);
+  white-space: nowrap;
+  z-index: 20;
+}
+.stage .tip small {
+  display: block;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stage .fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--lime);
+}
+
+@media (max-width: 900px) {
+  .hero .wrap {
+    grid-template-columns: 1fr;
+  }
+}

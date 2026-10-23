@@ -1,0 +1,23 @@
+/* MARQUEE */
+.marquee {
+  background: var(--lime);
+  color: var(--blue);
+  overflow: hidden;
+  border-block: 3px solid var(--blue-ink);
+  padding-block: 12px;
+}
+.marquee .track {
+  display: flex;
+  width: max-content;
+  animation: mq 34s linear infinite;
+  font-family: var(--display);
+  font-size: 24px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.marquee .track span {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding-right: 28px;
+}

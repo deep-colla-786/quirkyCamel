@@ -1,0 +1,44 @@
+/* FOOTER */
+.foot {
+  background: var(--blue);
+  color: var(--white);
+  text-align: center;
+}
+.foot h2 {
+  font-size: clamp(52px, 9vw, 130px);
+  line-height: 0.88;
+}
+.foot h2 .your {
+  display: block;
+  font-family: var(--body);
+  font-weight: 600;
+  color: var(--white);
+  text-shadow: none;
+  font-size: 0.34em;
+  letter-spacing: 0.1em;
+  margin: 6px 0;
+}
+.footer-logo {
+  width: 200px;
+  margin: 42px auto 16px;
+  color: var(--lime);
+}
+.foot nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.foot nav button {
+  color: var(--white);
+  font-weight: 600;
+  font-size: 14px;
+}
+.foot nav button:hover {
+  color: var(--lime);
+}
+.foot small {
+  color: #c4d3f3;
+  font-size: 13px;
+}

@@ -1,0 +1,138 @@
+/* ORDER SUCCESS MODAL */
+.order-success-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(14, 25, 45, 0.75);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.order-success-card {
+  background: var(--white);
+  width: min(580px, 100%);
+  border-radius: 26px;
+  padding: 32px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  position: relative;
+  text-align: center;
+}
+.success-close-btn {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  color: var(--muted);
+}
+.success-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--blue-ink);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+}
+.success-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--blue);
+  display: block;
+  margin-bottom: 6px;
+}
+.order-success-card h2 {
+  font-family: var(--display);
+  font-size: 28px;
+  color: var(--blue-ink);
+  margin-bottom: 6px;
+}
+.order-success-card p {
+  color: var(--muted);
+  font-size: 14.5px;
+  margin: 0;
+}
+
+.order-receipt-box {
+  background: var(--paper-2);
+  border-radius: 18px;
+  padding: 18px;
+  margin: 20px 0;
+  text-align: left;
+  display: grid;
+  gap: 14px;
+}
+.receipt-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.r-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.r-val {
+  font-size: 15px;
+  color: var(--ink);
+}
+.r-code {
+  font-family: monospace;
+}
+
+.shipping-summary-box {
+  border-top: 1px dashed #d5d8e0;
+  padding-top: 10px;
+}
+.shipping-address-text {
+  font-size: 13.5px;
+  color: var(--ink);
+  margin-top: 2px;
+}
+.receipt-gift-note {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--purple);
+  font-style: italic;
+}
+
+.receipt-items-list {
+  border-top: 1px dashed #d5d8e0;
+  padding-top: 10px;
+}
+.mini-sachets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.mini-sachet-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white);
+  border: 1.5px solid;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.mini-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.success-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .order-success-card, .order-success-card * { visibility: visible; }
+  .order-success-card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
+}

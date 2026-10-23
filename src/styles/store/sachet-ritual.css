@@ -1,0 +1,221 @@
+/* SACHET RITUAL SECTION */
+.sachet-sec {
+  background: var(--paper);
+}
+.sachet-sec .head {
+  max-width: 760px;
+  margin-bottom: 34px;
+}
+.sachet-sec h2 {
+  font-size: clamp(42px, 5.6vw, 76px);
+  margin: 6px 0 14px;
+}
+.sachet-sec .head p {
+  font-size: 16.5px;
+  color: #3f434c;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.sachet-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 36px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .sachet-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ritual {
+  position: relative;
+  background: var(--blue);
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 24px 50px -20px rgba(20,41,94,0.6);
+}
+.ritual .stage-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ritual .bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px 16px;
+  background: var(--blue-ink);
+  color: var(--white);
+}
+.ritual .bar .lab {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #b9c8ec;
+  display: block;
+}
+.ritual .bar b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 20px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55);
+  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 0;
+}
+.swatch:hover {
+  transform: scale(1.15);
+}
+.swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--blue-ink), 0 0 0 5.5px var(--lime);
+  transform: scale(1.15);
+}
+
+.steps3 {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+  display: grid;
+  gap: 10px;
+}
+.steps3 button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+  border: 0;
+  background: var(--white);
+  border-radius: 18px;
+  padding: 12px 16px;
+  transition: box-shadow 0.25s, transform 0.25s;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.05);
+}
+.steps3 button:hover {
+  transform: translateX(3px);
+}
+.steps3 button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2.5px var(--blue), 0 10px 24px -14px rgba(34,89,178,0.6);
+  transform: translateX(6px);
+}
+.num3 {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--white);
+}
+.n0 { background: var(--purple); }
+.n1 { background: var(--orange); color: var(--ink); }
+.n2 { background: var(--blue); }
+
+.steps3 b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--blue);
+  line-height: 1;
+}
+.steps3 .t3 {
+  display: block;
+  font-weight: 700;
+  font-size: 14.5px;
+  margin-top: 3px;
+}
+.steps3 small {
+  display: block;
+  font-size: 13px;
+  color: #4a4f5a;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.perks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.perk {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--white);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #4a4f5a;
+}
+.perk svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--purple);
+  margin-top: 2px;
+}
+.perk b {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.fineprint {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 14px 0 0;
+}
+
+/* Stage animation states */
+.stage-svg .t {
+  transition: transform 0.9s cubic-bezier(0.3, 1.2, 0.45, 1), opacity 0.55s;
+  transform-box: view-box;
+}
+.stage-svg .boxg { opacity: 0; transform: translate(-70px, 20px); }
+.stage-svg .pouchg { opacity: 0; transform: translate(70px, 20px); }
+.stage-svg .wrist { opacity: 0; transform: translate(90px, 50px); }
+.stage-svg .hs { transform: translate(85px, 24px) scale(0.55); }
+
+.stage-svg[data-step="0"] .boxg { opacity: 1; transform: none; }
+.stage-svg[data-step="1"] .pouchg { opacity: 1; transform: none; }
+.stage-svg[data-step="1"] .hs { transform: translate(293px, 104px) scale(0.45); }
+.stage-svg[data-step="2"] .hs { transform: translate(64px, 40px) rotate(-10deg) scale(0.7); }
+.stage-svg[data-step="2"] .wrist { opacity: 1; transform: none; }
+
+.stage-svg .drop, .stage-svg .spk { opacity: 0; }
+.stage-svg[data-step="2"] .drop { animation: drip 1.8s 0.9s infinite; }
+.stage-svg[data-step="2"] .spk { animation: twinkle 1.8s 1.6s infinite; }
+
+@keyframes drip {
+  0% { opacity: 0; transform: translate(130px, 52px) scale(0.3); }
+  12% { opacity: 1; transform: translate(134px, 56px) scale(1); }
+  62% { opacity: 1; transform: translate(292px, 232px) scale(1); }
+  74% { opacity: 1; transform: translate(296px, 240px) scale(1.5, 0.4); }
+  100% { opacity: 0; transform: translate(296px, 240px) scale(1.8, 0.2); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}

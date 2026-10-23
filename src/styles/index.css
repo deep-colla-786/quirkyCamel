@@ -1,0 +1,20 @@
+/* Store styles, split by section. Imported in this exact order (it is the cascade order). */
+@import './store/base.css'; /* Design tokens, reset, typography and buttons */
+@import './store/navigation.css'; /* Announcement bar and navigation */
+@import './store/hero.css'; /* Home: hero */
+@import './store/marquee.css'; /* Home: episode marquee */
+@import './store/icons.css'; /* Camel icon and logo masks */
+@import './store/sachet-ritual.css'; /* Home: the sachet ritual stage */
+@import './store/discovery.css'; /* Home: discovery filters and episode cards */
+@import './store/spinner.css'; /* Home: spin-a-situation reel */
+@import './store/compare.css'; /* Home: bottle vs kit comparison */
+@import './store/kit-buy-box.css'; /* Home: complete kit buy box */
+@import './store/manifesto.css'; /* Home: manifesto / our story */
+@import './store/faq.css'; /* Home: FAQ */
+@import './store/footer.css'; /* Footer */
+@import './store/episode.css'; /* Episode story pages */
+@import './store/cart-drawer.css'; /* Cart drawer and checkout forms */
+@import './store/sticky-buy-bar.css'; /* Sticky buy bar */
+@import './store/toast.css'; /* Toast notification */
+@import './store/razorpay-modal.css'; /* Demo Razorpay checkout modal */
+@import './store/order-success.css'; /* Order confirmation modal */

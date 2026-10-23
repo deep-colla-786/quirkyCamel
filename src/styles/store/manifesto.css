@@ -1,0 +1,155 @@
+/* MANIFESTO / STORY */
+.mani {
+  background: var(--orange);
+  color: var(--ink);
+}
+.mani .wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(36px, 6vw, 76px);
+  align-items: center;
+}
+.mani .camel {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+.arch {
+  position: relative;
+  aspect-ratio: 4/5;
+  border-radius: 999px 999px 34px 34px;
+  background: var(--purple);
+  overflow: hidden;
+  border: 5px solid var(--lime);
+  box-shadow: 0 10px 0 var(--purple-deep), 0 34px 50px -24px rgba(0,0,0,0.45);
+}
+.arch::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--squig);
+  background-size: 520px;
+}
+.arch img {
+  position: absolute;
+  z-index: 2;
+  left: 12%;
+  width: 76%;
+  bottom: -24%;
+  transform-origin: 50% 90%;
+  transition: transform 0.25s ease-out;
+}
+.camel-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg) scale(1.04); }
+  75% { transform: rotate(6deg); }
+}
+
+.mani .spk {
+  position: absolute;
+  z-index: 3;
+  color: var(--white);
+  pointer-events: none;
+}
+.mani .spk.a { width: 42px; left: -14px; top: 22%; }
+.mani .spk.b { width: 26px; right: -6px; top: 46%; }
+.mani .spk.c { width: 34px; right: 8%; top: 6px; color: var(--lime); }
+
+.speech {
+  position: absolute;
+  z-index: 5;
+  right: -10%;
+  top: 0;
+  background: var(--white);
+  color: var(--purple);
+  font-family: var(--mix);
+  font-weight: 700;
+  font-size: 16px;
+  padding: 10px 14px;
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: 0 5px 0 var(--purple-deep);
+  transform: scale(0);
+  transform-origin: 0 100%;
+  transition: transform 0.35s cubic-bezier(0.3, 1.7, 0.5, 1);
+  max-width: 190px;
+  line-height: 1.25;
+}
+.speech.on {
+  transform: scale(1);
+}
+
+.boop {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--purple);
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  box-shadow: 0 5px 0 var(--purple-deep);
+  transition: transform 0.15s;
+}
+.boop:hover {
+  transform: translateX(-50%) translateY(-2px);
+}
+.boop:active {
+  transform: translateX(-50%) translateY(3px);
+}
+
+.mani h2 {
+  font-size: clamp(38px, 5.2vw, 72px);
+  margin: 6px 0 16px;
+}
+.mani p {
+  font-size: 16.5px;
+  max-width: 58ch;
+  margin: 0 0 12px;
+}
+
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 22px 0;
+}
+.pillars div {
+  background: rgba(255,255,255,0.45);
+  border-radius: 18px;
+  padding: 14px;
+  transition: transform 0.25s, background 0.25s;
+}
+.pillars div:hover {
+  transform: translateY(-3px);
+  background: rgba(255,255,255,0.7);
+}
+.pillars b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--purple);
+  text-transform: uppercase;
+}
+.pillars small {
+  display: block;
+  font-size: 13px;
+  color: #3a2a10;
+  margin-top: 4px;
+}
+
+@media (max-width: 820px) {
+  .mani .wrap { grid-template-columns: 1fr; }
+  .speech { right: -2%; }
+}

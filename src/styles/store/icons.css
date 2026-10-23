@@ -1,0 +1,22 @@
+/* Camel silhouette / logo, tinted with currentColor */
+.icon {
+  display: inline-block;
+  aspect-ratio: 366 / 286;
+  background: currentColor;
+  -webkit-mask: url('../../assets/camel-icon.png') center / contain no-repeat;
+  mask: url('../../assets/camel-icon.png') center / contain no-repeat;
+}
+.logo {
+  display: block;
+  aspect-ratio: 1069 / 286;
+  background: currentColor;
+  -webkit-mask: url('../../assets/qc-logo.png') center / contain no-repeat;
+  mask: url('../../assets/qc-logo.png') center / contain no-repeat;
+}
+.marquee .icon {
+  height: 24px;
+  color: var(--purple);
+}
+@keyframes mq {
+  to { transform: translateX(-50%); }
+}

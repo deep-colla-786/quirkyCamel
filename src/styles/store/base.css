@@ -1,0 +1,208 @@
+/* Quirky Camel Design System & Styles */
+:root {
+  color-scheme: light;
+  --blue: #2259B2;
+  --blue-deep: #173f86;
+  --blue-ink: #14295e;
+  --lime: #C4E539;
+  --lime-deep: #9fbd1f;
+  --purple: #7616C1;
+  --purple-deep: #560e8f;
+  --orange: #FF9100;
+  --orange-deep: #cf7400;
+  --paper: #EDEDED;
+  --paper-2: #f6f6f2;
+  --ink: #212121;
+  --white: #ffffff;
+  --muted: #5b5f6b;
+  --display: "Bagel Fat One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --mix: "Gluten", "Trebuchet MS", cursive;
+  --body: "Lexend", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --gut-r: max(16px, env(safe-area-inset-right, 0px));
+  --squig: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.0045' numOctaves='2' seed='7'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 1.9'/><feComponentTransfer><feFuncA type='discrete' tableValues='0 1 0 1 0 1 0 1 0'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23f)' opacity='0.13'/></svg>");
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.wrap {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding-left: var(--gut-l);
+  padding-right: var(--gut-r);
+}
+
+.band {
+  position: relative;
+  padding-block: clamp(56px, 7vw, 100px);
+  overflow: hidden;
+}
+
+.squig::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--squig);
+  background-size: 900px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.band > .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* Typography */
+.bubble {
+  font-family: var(--display);
+  font-weight: 400;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-wrap: balance;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.b-lime {
+  color: var(--lime);
+  text-shadow: 0 3px 0 var(--lime-deep), 0 6px 0 #6f8710, 0 14px 22px rgba(0,0,0,0.28);
+}
+.b-orange {
+  color: var(--orange);
+  text-shadow: 0 3px 0 var(--orange-deep), 0 6px 0 #995600, 0 14px 22px rgba(0,0,0,0.25);
+}
+.b-purple {
+  color: var(--purple);
+  text-shadow: 0 3px 0 var(--purple-deep), 0 6px 0 #3a0761, 0 12px 20px rgba(0,0,0,0.18);
+}
+.b-blue {
+  color: var(--blue);
+  text-shadow: 0 3px 0 var(--blue-deep), 0 6px 0 #0e2858, 0 12px 20px rgba(0,0,0,0.16);
+}
+
+.bubble .w {
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+.bubble .w:hover {
+  transform: translateY(-6px) rotate(-4deg) scale(1.05);
+}
+
+.mix {
+  font-family: var(--mix);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 24px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.btn:hover {
+  transform: translateY(-2px);
+}
+.btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.25) !important;
+}
+
+.btn.lime {
+  background: var(--lime);
+  color: var(--blue-ink);
+  box-shadow: 0 5px 0 var(--lime-deep);
+}
+.btn.blue {
+  background: var(--blue);
+  color: var(--white);
+  box-shadow: 0 5px 0 var(--blue-deep);
+}
+.btn.orange {
+  background: var(--orange);
+  color: var(--ink);
+  box-shadow: 0 5px 0 var(--orange-deep);
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--lime);
+  box-shadow: inset 0 0 0 2px var(--lime);
+}
+.btn.ghost-dark {
+  background: transparent;
+  color: var(--blue);
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
+.btn.wide {
+  width: 100%;
+}
+
+.btn-text {
+  background: none;
+  border: 0;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
