@@ -29,10 +29,10 @@ export function razorpayConfig(env) {
 
 const clip = (v, n = 250) => String(v ?? '').trim().slice(0, n);
 
-async function validateCheckout(env, user, body) {
-  // Merge duplicate lines, then price every item from the database.
+// Merges duplicate cart lines into slug -> total quantity.
+function readCartLines(rawItems) {
   const wanted = new Map();
-  for (const it of Array.isArray(body.items) ? body.items : []) {
+  for (const it of Array.isArray(rawItems) ? rawItems : []) {
     const qty = Number(it?.qty);
     if (!Number.isInteger(qty) || qty < 1) throw new HttpError(400, 'Invalid quantity.');
     const slug = clip(it.slug, 80);
@@ -40,20 +40,26 @@ async function validateCheckout(env, user, body) {
   }
   if (!wanted.size) throw new HttpError(400, 'Your cart is empty.');
   if (wanted.size > 20) throw new HttpError(400, 'Too many different items.');
+  return wanted;
+}
 
+// Prices one line from the database product, checking availability and stock.
+function priceLine(p, slug, qty) {
+  if (!isBuyable(p)) throw new HttpError(400, 'An item in your cart is no longer available. Please refresh.');
+  if (qty > MAX_QTY) throw new HttpError(400, `You can buy at most ${MAX_QTY} of ${p.name}.`);
+  const limited = p.stock !== null && p.stock !== undefined;
+  if (limited && p.stock < qty) {
+    throw new HttpError(409, p.stock === 0 ? `${p.name} is out of stock.` : `Only ${p.stock} of ${p.name} left.`);
+  }
+  return { slug, name: p.name, price: p.price, qty };
+}
+
+async function validateCheckout(env, user, body) {
+  const wanted = readCartLines(body.items);
   const db = await getDb(env);
   const docs = await db.collection('products').find({ slug: { $in: [...wanted.keys()] } }).toArray();
   const bySlug = Object.fromEntries(docs.map((d) => [d.slug, d]));
-  const items = [];
-  for (const [slug, qty] of wanted) {
-    const p = bySlug[slug];
-    if (!isBuyable(p)) throw new HttpError(400, 'An item in your cart is no longer available. Please refresh.');
-    if (qty > MAX_QTY) throw new HttpError(400, `You can buy at most ${MAX_QTY} of ${p.name}.`);
-    if (p.stock !== null && p.stock !== undefined && p.stock < qty) {
-      throw new HttpError(409, p.stock === 0 ? `${p.name} is out of stock.` : `Only ${p.stock} of ${p.name} left.`);
-    }
-    items.push({ slug, name: p.name, price: p.price, qty });
-  }
+  const items = [...wanted].map(([slug, qty]) => priceLine(bySlug[slug], slug, qty));
 
   const c = body.customer || {};
   const customer = {

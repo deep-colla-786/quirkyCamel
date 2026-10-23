@@ -1,5 +1,7 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ShoppingBag, Heart, User } from 'lucide-react';
+import { userShape } from '../../lib/propShapes';
 
 export default function Navbar({
   cartCount,
@@ -110,3 +112,15 @@ export default function Navbar({
     </>
   );
 }
+
+Navbar.propTypes = {
+  cartCount: PropTypes.number.isRequired,
+  onOpenCart: PropTypes.func.isRequired,
+  wishlistCount: PropTypes.number.isRequired,
+  onOpenWishlist: PropTypes.func.isRequired,
+  currentView: PropTypes.string.isRequired,
+  onNavigate: PropTypes.func.isRequired,
+  user: userShape,
+  authChecked: PropTypes.bool.isRequired,
+  onLogin: PropTypes.func.isRequired
+};

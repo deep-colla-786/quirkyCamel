@@ -1,8 +1,15 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { formatINR } from '../../data/episodes';
 import { fmtDateTime, itemsText } from '../utils/format';
 import Stat from '../components/Stat';
 import RevenueChart from '../components/RevenueChart';
+import { orderShape, statsShape } from '../utils/shapes';
+
+function revenueNote(revenue, demoShare) {
+  if (revenue === 0) return 'No sales yet';
+  return demoShare > 0 ? `${formatINR(demoShare)} from demo orders` : 'All paid via Razorpay';
+}
 
 export default function Overview({ stats, orders, onGo }) {
   if (!stats) return <p className="ad-muted">Loading…</p>;
@@ -13,7 +20,7 @@ export default function Overview({ stats, orders, onGo }) {
         <Stat
           label="Revenue"
           value={formatINR(stats.revenue)}
-          sub={stats.revenue === 0 ? 'No sales yet' : demoShare > 0 ? `${formatINR(demoShare)} from demo orders` : 'All paid via Razorpay'}
+          sub={revenueNote(stats.revenue, demoShare)}
         />
         <Stat label="Orders" value={stats.orders} sub={`${stats.unitsSold} items sold`} />
         <Stat label="Customers" value={stats.users} sub={`${stats.newUsers7d} new in the last 7 days`} />
@@ -82,3 +89,9 @@ export default function Overview({ stats, orders, onGo }) {
     </>
   );
 }
+
+Overview.propTypes = {
+  stats: statsShape,
+  orders: PropTypes.arrayOf(orderShape),
+  onGo: PropTypes.func.isRequired
+};

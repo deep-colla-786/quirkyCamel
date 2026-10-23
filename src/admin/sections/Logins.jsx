@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { adminApi } from '../../lib/api';
 import { fmtDateTime } from '../utils/format';
 
 const LOGIN_TYPES = { login: ['ok', 'Login'], signup: ['info', 'Sign-up'], failed: ['bad', 'Failed login'], logout: ['muted', 'Logout'] };
+const AREA_LABELS = { store: 'Store', admin: 'Admin' };
+const FILTERS = ['all', 'login', 'signup', 'failed', 'logout'];
+
+function EventBadge({ type }) {
+  const [cls, label] = LOGIN_TYPES[type] || ['muted', type];
+  return <span className={`ad-badge ${cls}`}>{label}</span>;
+}
+
+EventBadge.propTypes = { type: PropTypes.string.isRequired };
 
 export default function Logins() {
   const [rows, setRows] = useState(null);
@@ -10,31 +20,33 @@ export default function Logins() {
   useEffect(() => {
     adminApi.logins().then((res) => res.ok && setRows(res.data.logins));
   }, []);
-  const list = rows && (type === 'all' ? rows : rows.filter((r) => r.type === type));
+
+  if (!rows) return <p className="ad-muted">Loading…</p>;
+  const list = type === 'all' ? rows : rows.filter((r) => r.type === type);
+
   return (
     <section className="ad-card">
       <header className="ad-card-head">
         <div>
           <h2>Login activity</h2>
-          <p>The latest 200 sign-ups, logins, failed attempts and logouts</p>
+          <p>The latest 200 sign-ups, logins, failed attempts and logouts, in the store and the admin panel</p>
         </div>
         <div className="ad-chips" role="group" aria-label="Filter by event">
-          {['all', 'login', 'signup', 'failed', 'logout'].map((t) => (
+          {FILTERS.map((t) => (
             <button key={t} aria-pressed={type === t} onClick={() => setType(t)}>
               {t === 'all' ? 'All' : LOGIN_TYPES[t][1]}
             </button>
           ))}
         </div>
       </header>
-      {!list ? (
-        <p className="ad-muted">Loading…</p>
-      ) : list.length ? (
+      {list.length ? (
         <div className="ad-table-wrap">
           <table className="ad-table">
             <thead>
               <tr>
                 <th>When</th>
                 <th>Event</th>
+                <th>Area</th>
                 <th>Email</th>
                 <th>Device</th>
                 <th>IP address</th>
@@ -45,8 +57,9 @@ export default function Logins() {
                 <tr key={r.id}>
                   <td>{fmtDateTime(r.at)}</td>
                   <td>
-                    <span className={`ad-badge ${LOGIN_TYPES[r.type]?.[0] || 'muted'}`}>{LOGIN_TYPES[r.type]?.[1] || r.type}</span>
+                    <EventBadge type={r.type} />
                   </td>
+                  <td>{AREA_LABELS[r.scope] || r.scope}</td>
                   <td>{r.email || '—'}</td>
                   <td>{r.device}</td>
                   <td className="mono">{r.ip}</td>

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function Toast({ message }) {
   return (
@@ -7,3 +8,7 @@ export default function Toast({ message }) {
     </div>
   );
 }
+
+Toast.propTypes = {
+  message: PropTypes.string
+};

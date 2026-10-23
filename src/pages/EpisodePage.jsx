@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { EPISODES, PRICE, formatINR, MOOD_LABELS } from '../data/episodes';
 import { SCENES, sachetSVG, sachetBackSVG } from '../utils/svgGenerators';
 import { Info, ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react';
+import { episodeShape } from '../lib/propShapes';
 
 export default function EpisodeView({
   episode,
@@ -279,3 +281,10 @@ export default function EpisodeView({
     </div>
   );
 }
+
+EpisodeView.propTypes = {
+  episode: episodeShape,
+  onAddToCart: PropTypes.func,
+  onSelectEpisode: PropTypes.func.isRequired,
+  onBackHome: PropTypes.func.isRequired
+};

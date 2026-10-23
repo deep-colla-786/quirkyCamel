@@ -1,5 +1,7 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { customerShape } from '../../lib/propShapes';
 
 // Step 2: delivery address form.
 export default function ShippingStep({ formData, formError, onChange, onSubmit, onBack }) {
@@ -124,3 +126,11 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
     </form>
   );
 }
+
+ShippingStep.propTypes = {
+  formData: customerShape.isRequired,
+  formError: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  onBack: PropTypes.func.isRequired
+};

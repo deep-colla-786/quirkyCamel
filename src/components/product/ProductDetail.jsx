@@ -1,5 +1,6 @@
 // Rendered with key={slug}, so all local state resets when the product changes.
 import React, { useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { Heart, Share2 } from 'lucide-react';
 import { EPISODES, formatINR } from '../../data/episodes';
 import { REVIEWS } from '../../data/products';
@@ -11,6 +12,72 @@ import Reviews from './detail/Reviews';
 import RelatedProducts from './detail/RelatedProducts';
 import RecentlyViewed from './detail/RecentlyViewed';
 import { buildTabs } from './detail/productTabs';
+import { productShape, catalogShape } from '../../lib/propShapes';
+
+// Per-type copy: page modifier class, breadcrumb label and the related-products heading.
+const KIND_COPY = {
+  kit: { pageClass: 'pd-is-kit', crumb: 'Kits', relatedTitle: 'The six fragrances inside' },
+  extra: { pageClass: 'pd-is-extra', crumb: 'Extras', relatedTitle: 'You might also like' },
+  frag: { pageClass: 'pd-is-frag', crumb: 'Fragrances', relatedTitle: 'Also in the kit' }
+};
+
+function productKind(product) {
+  if (product.type === 'kit') return 'kit';
+  if (product.type === 'product') return 'extra';
+  return 'frag';
+}
+
+function relatedFor(kind, product, catalog) {
+  if (kind === 'kit') return catalog.fragrances;
+  if (kind === 'extra') return [catalog.kit, ...catalog.extras.filter((p) => p.slug !== product.slug)];
+  return [catalog.kit, ...catalog.fragrances.filter((f) => f.slug !== product.slug)];
+}
+
+function priceNote(isKit, ep, target) {
+  if (isKit) return `Inclusive of all taxes · about ${formatINR(Math.round(target.price / 6))} per fragrance`;
+  if (ep) return 'Price of The Complete Kit · inclusive of all taxes';
+  return 'Inclusive of all taxes';
+}
+
+// Kit: links to the six fragrances; fragrance: quick facts; extras show neither.
+function renderHighlights(kind, product) {
+  if (kind === 'extra') return null;
+  if (kind === 'kit') {
+    return (
+      <div className="pd-swatch-row" aria-label="Fragrances included">
+        {EPISODES.map((e) => (
+          <a key={e.id} href={`#product/${e.id}`} style={{ background: e.pal.bg }} title={e.name}>
+            <span className="sr">{e.name}</span>
+          </a>
+        ))}
+        <span>6 fragrance sachets inside</span>
+      </div>
+    );
+  }
+  const ep = product.episode;
+  return (
+    <dl className="pd-facts">
+      <div>
+        <dt>Smells</dt>
+        <dd>{ep.scentTags.join(' · ')}</dd>
+      </div>
+      <div>
+        <dt>Mood</dt>
+        <dd>{product.moods.join(' · ')}</dd>
+      </div>
+      <div>
+        <dt>Wear it for</dt>
+        <dd>{ep.occasions.slice(0, 3).join(' · ')}</dd>
+      </div>
+      {ep.audience && (
+        <div>
+          <dt>Made for</dt>
+          <dd>{ep.audience}</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
 
 export default function ProductDetail({
   product,
@@ -31,6 +98,8 @@ export default function ProductDetail({
   const target = ep ? KIT : product;
   const available = !!target && inStock(target);
   const reviews = REVIEWS[product.slug] || [];
+  const kind = productKind(product);
+  const copy = KIND_COPY[kind];
 
   const share = async () => {
     const url = window.location.href;
@@ -49,13 +118,7 @@ export default function ProductDetail({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const tabs = useMemo(() => buildTabs(product), [isKit, isExtra, ep]);
 
-  const related = (
-    isKit
-      ? catalog.fragrances
-      : isExtra
-        ? [KIT, ...catalog.extras.filter((p) => p.slug !== product.slug)]
-        : [KIT, ...catalog.fragrances.filter((f) => f.slug !== product.slug)]
-  ).filter(Boolean);
+  const related = relatedFor(kind, product, catalog).filter(Boolean);
   const recent = recentlyViewed
     .filter((s) => s !== product.slug)
     .map((s) => catalog.bySlug[s])
@@ -64,7 +127,7 @@ export default function ProductDetail({
 
   return (
     <div
-      className={`pd-page ${isKit ? 'pd-is-kit' : isExtra ? 'pd-is-extra' : 'pd-is-frag'}`}
+      className={`pd-page ${copy.pageClass}`}
       style={ep ? { '--pd-bg': ep.pal.bg, '--pd-soft': ep.pal.soft, '--pd-deep': ep.pal.deep } : undefined}
     >
       <div className="wrap">
@@ -73,7 +136,7 @@ export default function ProductDetail({
           <span>/</span>
           <a href="#shop">Shop</a>
           <span>/</span>
-          <span>{isKit ? 'Kits' : isExtra ? 'Extras' : 'Fragrances'}</span>
+          <span>{copy.crumb}</span>
           <span>/</span>
           <span aria-current="page">{product.name}</span>
         </nav>
@@ -109,47 +172,11 @@ export default function ProductDetail({
                   {target.discountPct > 0 && <span className="pd-save">Save {target.discountPct}%</span>}
                   {!available && <span className="pd-out">Out of stock</span>}
                 </div>
-                <p className="pd-price-note">
-                  {isKit
-                    ? `Inclusive of all taxes · about ${formatINR(Math.round(target.price / 6))} per fragrance`
-                    : ep
-                      ? 'Price of The Complete Kit · inclusive of all taxes'
-                      : 'Inclusive of all taxes'}
-                </p>
+                <p className="pd-price-note">{priceNote(isKit, ep, target)}</p>
               </>
             )}
 
-            {isExtra ? null : isKit ? (
-              <div className="pd-swatch-row" aria-label="Fragrances included">
-                {EPISODES.map((e) => (
-                  <a key={e.id} href={`#product/${e.id}`} style={{ background: e.pal.bg }} title={e.name}>
-                    <span className="sr">{e.name}</span>
-                  </a>
-                ))}
-                <span>6 fragrance sachets inside</span>
-              </div>
-            ) : (
-              <dl className="pd-facts">
-                <div>
-                  <dt>Smells</dt>
-                  <dd>{ep.scentTags.join(' · ')}</dd>
-                </div>
-                <div>
-                  <dt>Mood</dt>
-                  <dd>{product.moods.join(' · ')}</dd>
-                </div>
-                <div>
-                  <dt>Wear it for</dt>
-                  <dd>{ep.occasions.slice(0, 3).join(' · ')}</dd>
-                </div>
-                {ep.audience && (
-                  <div>
-                    <dt>Made for</dt>
-                    <dd>{ep.audience}</dd>
-                  </div>
-                )}
-              </dl>
-            )}
+            {renderHighlights(kind, product)}
 
             <BuyPanel
               product={product}
@@ -167,7 +194,7 @@ export default function ProductDetail({
         <Reviews reviews={reviews} />
 
         <RelatedProducts
-          title={isKit ? 'The six fragrances inside' : isExtra ? 'You might also like' : 'Also in the kit'}
+          title={copy.relatedTitle}
           products={related}
           wishlist={wishlist}
           onToggleSaved={onToggleSaved}
@@ -179,3 +206,15 @@ export default function ProductDetail({
     </div>
   );
 }
+
+ProductDetail.propTypes = {
+  product: productShape.isRequired,
+  catalog: catalogShape.isRequired,
+  saved: PropTypes.bool.isRequired,
+  onToggleSaved: PropTypes.func.isRequired,
+  onAddToCart: PropTypes.func.isRequired,
+  onBuyNow: PropTypes.func.isRequired,
+  wishlist: PropTypes.arrayOf(PropTypes.string).isRequired,
+  recentlyViewed: PropTypes.arrayOf(PropTypes.string).isRequired,
+  showToast: PropTypes.func.isRequired
+};

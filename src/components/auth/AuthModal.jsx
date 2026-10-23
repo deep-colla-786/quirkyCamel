@@ -1,8 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { X, Eye, EyeOff, Lock } from 'lucide-react';
 import { authApi } from '../../lib/api';
 
 const EMPTY = { name: '', email: '', phone: '', password: '' };
+
+// Same rule as /^\S+@\S+\.\S+$/ (no whitespace; an '@' after the first character; a '.'
+// at least one character after it and before the last character), without regex backtracking.
+const isValidEmail = (value) => {
+  if (/\s/.test(value)) return false;
+  const at = value.indexOf('@', 1);
+  const dot = value.lastIndexOf('.', value.length - 2);
+  return at !== -1 && dot >= at + 2;
+};
 
 export default function AuthModal({ isOpen, initialMode = 'login', reason, onClose, onAuthed }) {
   const [mode, setMode] = useState(initialMode);
@@ -32,12 +42,13 @@ export default function AuthModal({ isOpen, initialMode = 'login', reason, onClo
 
   const set = (e) => setFields((f) => ({ ...f, [e.target.name]: e.target.value }));
   const isSignup = mode === 'signup';
+  const submitLabel = isSignup ? 'Create account' : 'Log in';
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
     if (isSignup && fields.name.trim().length < 2) return setError('Please enter your name.');
-    if (!/^\S+@\S+\.\S+$/.test(fields.email.trim())) return setError('Please enter a valid email address.');
+    if (!isValidEmail(fields.email.trim())) return setError('Please enter a valid email address.');
     if (isSignup && fields.password.length < 8) return setError('Password must be at least 8 characters.');
     if (!fields.password) return setError('Please enter your password.');
 
@@ -126,7 +137,7 @@ export default function AuthModal({ isOpen, initialMode = 'login', reason, onClo
           )}
 
           <button className="btn blue wide" type="submit" disabled={busy}>
-            {busy ? 'Please wait…' : isSignup ? 'Create account' : 'Log in'}
+            {busy ? 'Please wait…' : submitLabel}
           </button>
         </form>
 
@@ -143,3 +154,11 @@ export default function AuthModal({ isOpen, initialMode = 'login', reason, onClo
     </div>
   );
 }
+
+AuthModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  initialMode: PropTypes.oneOf(['login', 'signup']),
+  reason: PropTypes.string,
+  onClose: PropTypes.func.isRequired,
+  onAuthed: PropTypes.func.isRequired
+};

@@ -1,19 +1,12 @@
 // Checks the SMTP settings in .env and sends a test email.
 // Usage: npm run mail:test            (sends to ADMIN_EMAIL)
 //        npm run mail:test -- you@example.com
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadEnv } from '../server/env.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const env = { ...process.env };
-const envFile = path.join(root, '.env');
-if (fs.existsSync(envFile)) {
-  for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*([\w.]+)\s*=\s*(.*?)\s*$/);
-    if (m && !(m[1] in process.env)) env[m[1]] = m[2].replace(/^['"]|['"]$/g, '');
-  }
-}
+const env = loadEnv(root);
 
 const { mailStatus, sendTestEmail } = await import('../server/mailer.js');
 const to = process.argv[2] || env.ADMIN_EMAIL;

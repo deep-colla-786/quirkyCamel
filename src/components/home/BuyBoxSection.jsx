@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { EPISODES, PRICE, ORIGINAL_PRICE, formatINR, RITUAL_STEPS } from '../../data/episodes';
 import { kitSVG, sachetSVG } from '../../utils/svgGenerators';
 import { Info, Gift, Check, ShieldCheck, Zap } from 'lucide-react';
 
-export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode, onNavigateToProduct }) {
+export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }) {
   const [quantity, setQuantity] = useState(1);
   const perEp = Math.round(PRICE / 6);
 
@@ -144,3 +145,9 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode, 
     </section>
   );
 }
+
+BuyBoxSection.propTypes = {
+  onAddToCart: PropTypes.func.isRequired,
+  onBuyNow: PropTypes.func.isRequired,
+  onSelectEpisode: PropTypes.func.isRequired
+};

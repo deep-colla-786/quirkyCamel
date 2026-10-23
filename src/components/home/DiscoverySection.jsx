@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { EPISODES, ROUTES, OCC_LABELS } from '../../data/episodes';
 import { SCENES, sachetSVG } from '../../utils/svgGenerators';
 
@@ -112,13 +113,13 @@ export default function DiscoverySection({ onSelectEpisode }) {
                 key={ep.id}
                 className={`ep-card ${!matches ? 'dim' : ''}`}
                 style={epVars}
-                onClick={() => onSelectEpisode && onSelectEpisode(ep.id)}
+                onClick={() => onSelectEpisode?.(ep.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(ev) => {
                   if (ev.key === 'Enter' || ev.key === ' ') {
                     ev.preventDefault();
-                    onSelectEpisode && onSelectEpisode(ep.id);
+                    onSelectEpisode?.(ep.id);
                   }
                 }}
               >
@@ -175,3 +176,7 @@ export default function DiscoverySection({ onSelectEpisode }) {
     </section>
   );
 }
+
+DiscoverySection.propTypes = {
+  onSelectEpisode: PropTypes.func.isRequired
+};

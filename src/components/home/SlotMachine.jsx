@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { EPISODES } from '../../data/episodes';
 import { SCENES } from '../../utils/svgGenerators';
 
@@ -15,6 +16,7 @@ export default function SlotMachine({ onSelectEpisode }) {
     setLeverPulled(true);
     setTimeout(() => setLeverPulled(false), 300);
 
+    // eslint-disable-next-line sonarjs/pseudo-random -- cosmetic only, not security-sensitive
     const targetIndex = Math.floor(Math.random() * 6);
     const totalTicks = 16 + targetIndex;
     let tickCount = 0;
@@ -88,3 +90,7 @@ export default function SlotMachine({ onSelectEpisode }) {
     </section>
   );
 }
+
+SlotMachine.propTypes = {
+  onSelectEpisode: PropTypes.func.isRequired
+};

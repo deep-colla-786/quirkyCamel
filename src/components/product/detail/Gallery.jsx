@@ -4,6 +4,7 @@ import { EPISODES } from '../../../data/episodes';
 import { SCENES, kitSVG, sachetSVG, sachetBackSVG } from '../../../utils/svgGenerators';
 import Hero3D from '../../kit3d/Hero3D';
 import { ProductImage } from '../ProductCard';
+import { productShape } from '../../../lib/propShapes';
 
 // Image carousel. Kit: box + six sachets + live 3D view; fragrance: scene + sachet front/back + kit.
 function galleryFor(product) {
@@ -22,6 +23,13 @@ function galleryFor(product) {
     { id: 'back', label: 'Sachet back', html: () => sachetBackSVG(e), bg: e.pal.soft, sachet: true },
     { id: 'kit', label: 'In the kit', html: () => kitSVG(EPISODES) }
   ];
+}
+
+// Main stage: the live 3D view, an uploaded photo, or generated SVG artwork.
+function renderStage(cur, product) {
+  if (cur.id === '3d') return <Hero3D onSelectEpisode={(id) => (window.location.hash = `#product/${id}`)} />;
+  if (cur.photo) return <ProductImage product={product} className="pd-stage-art pd-photo" />;
+  return <div key={cur.id} className="pd-stage-art" dangerouslySetInnerHTML={{ __html: cur.markup }} />;
 }
 
 export default function Gallery({ product }) {
@@ -43,13 +51,7 @@ export default function Gallery({ product }) {
         aria-roledescription="carousel"
         aria-label={`${product.name} images, ${idx + 1} of ${items.length}: ${cur.label}`}
       >
-        {cur.id === '3d' ? (
-          <Hero3D onSelectEpisode={(id) => (window.location.hash = `#product/${id}`)} />
-        ) : cur.photo ? (
-          <ProductImage product={product} className="pd-stage-art pd-photo" />
-        ) : (
-          <div key={cur.id} className="pd-stage-art" dangerouslySetInnerHTML={{ __html: cur.markup }} />
-        )}
+        {renderStage(cur, product)}
         {items.length > 1 && (
           <>
             <button className="pd-nav prev" onClick={() => go(-1)} aria-label="Previous image">
@@ -87,3 +89,7 @@ export default function Gallery({ product }) {
     </div>
   );
 }
+
+Gallery.propTypes = {
+  product: productShape.isRequired
+};

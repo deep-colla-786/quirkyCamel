@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Send } from 'lucide-react';
 import { adminApi } from '../../lib/api';
 
@@ -25,3 +26,8 @@ export default function ResendButton({ orderId, onDone }) {
     </>
   );
 }
+
+ResendButton.propTypes = {
+  orderId: PropTypes.string.isRequired,
+  onDone: PropTypes.func.isRequired
+};

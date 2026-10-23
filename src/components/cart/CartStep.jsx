@@ -1,8 +1,10 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ArrowRight, Trash2 } from 'lucide-react';
 import { formatINR, EPISODES } from '../../data/episodes';
 import { MAX_QTY } from '../../data/products';
 import LineThumb from './LineThumb';
+import { cartLineShape, productShape } from '../../lib/propShapes';
 
 // Step 1: cart lines, kit upsell and totals (or the empty state).
 export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onClose, onCheckout }) {
@@ -118,3 +120,13 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
     </div>
   );
 }
+
+CartStep.propTypes = {
+  lines: PropTypes.arrayOf(cartLineShape).isRequired,
+  kit: productShape,
+  subtotal: PropTypes.number.isRequired,
+  onSetQty: PropTypes.func.isRequired,
+  onAddKit: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onCheckout: PropTypes.func.isRequired
+};

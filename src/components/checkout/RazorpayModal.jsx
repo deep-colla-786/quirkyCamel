@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { formatINR } from '../../data/episodes';
-import { Shield, Smartphone, CreditCard, Landmark, Wallet, Check, AlertCircle, X } from 'lucide-react';
+import { Shield, Smartphone, CreditCard, Landmark, Wallet, X } from 'lucide-react';
+import { customerShape } from '../../lib/propShapes';
 
 export default function RazorpayModal({
   isOpen,
   onClose,
   amount,
-  orderDetails,
   customerDetails,
   onPaymentSuccess,
   onPaymentFailure
@@ -28,6 +29,7 @@ export default function RazorpayModal({
     setTimeout(() => {
       setIsProcessing(false);
       if (success) {
+        // eslint-disable-next-line sonarjs/pseudo-random -- cosmetic only, not security-sensitive (demo id, replaced by the server order)
         const paymentId = 'pay_' + Math.random().toString(36).substring(2, 11).toUpperCase();
         const orderId = 'order_QC_' + Date.now().toString().slice(-6);
         onPaymentSuccess({
@@ -245,3 +247,12 @@ export default function RazorpayModal({
     </div>
   );
 }
+
+RazorpayModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  amount: PropTypes.number.isRequired,
+  customerDetails: customerShape,
+  onPaymentSuccess: PropTypes.func.isRequired,
+  onPaymentFailure: PropTypes.func.isRequired
+};

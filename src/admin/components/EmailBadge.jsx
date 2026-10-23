@@ -1,8 +1,8 @@
 import React from 'react';
+import { emailResultShape } from '../utils/shapes';
 import { Mail, CheckCircle2, AlertTriangle, Inbox } from 'lucide-react';
 
 // Delivery status of an order email: sent, saved to outbox, failed or pending.
-
 export default function EmailBadge({ e }) {
   if (!e) return <span className="ad-badge muted">Pending</span>;
   const map = {
@@ -17,3 +17,7 @@ export default function EmailBadge({ e }) {
     </span>
   );
 }
+
+EmailBadge.propTypes = {
+  e: emailResultShape
+};

@@ -1,5 +1,7 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import ProductCard from '../ProductCard';
+import { productShape } from '../../../lib/propShapes';
 
 export default function RelatedProducts({ title, products, wishlist, onToggleSaved, onAddToCart }) {
   return (
@@ -19,3 +21,11 @@ export default function RelatedProducts({ title, products, wishlist, onToggleSav
     </section>
   );
 }
+
+RelatedProducts.propTypes = {
+  title: PropTypes.string.isRequired,
+  products: PropTypes.arrayOf(productShape).isRequired,
+  wishlist: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onToggleSaved: PropTypes.func.isRequired,
+  onAddToCart: PropTypes.func.isRequired
+};

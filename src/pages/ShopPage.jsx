@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { SlidersHorizontal, X, ShieldCheck, Gift, Package, Truck, Heart } from 'lucide-react';
 import { ROUTES } from '../data/episodes';
 import { STORE_POLICY } from '../data/products';
 import ProductCard from '../components/product/ProductCard';
+import { catalogShape, productShape } from '../lib/propShapes';
 
 const SORTS = {
   featured: { label: 'Featured', fn: (a, b) => a.episode.n - b.episode.n },
@@ -11,6 +13,161 @@ const SORTS = {
 };
 const GROUPS = ['mood', 'occ', 'scent'];
 const emptyFilters = () => ({ mood: [], occ: [], scent: [] });
+const filtersShape = PropTypes.shape({
+  mood: PropTypes.arrayOf(PropTypes.string).isRequired,
+  occ: PropTypes.arrayOf(PropTypes.string).isRequired,
+  scent: PropTypes.arrayOf(PropTypes.string).isRequired
+});
+
+// Extras have no episode number, so "featured" keeps their admin order.
+function extrasSort(sort) {
+  if (sort === 'featured') return () => 0;
+  return (a, b) => (sort === 'za' ? -1 : 1) * a.name.localeCompare(b.name);
+}
+
+function ShopHeroCopy({ savedOnly, savedCount }) {
+  return (
+    <>
+      <nav className="crumbs" aria-label="Breadcrumb">
+        <a href="#top">Home</a>
+        <span>/</span>
+        {savedOnly ? (
+          <>
+            <a href="#shop">Shop</a>
+            <span>/</span>
+            <span aria-current="page">Saved</span>
+          </>
+        ) : (
+          <span aria-current="page">Shop</span>
+        )}
+      </nav>
+      <h1 className="bubble b-lime">{savedOnly ? 'Your saved camels' : 'Shop the camel'}</h1>
+      <p>
+        {savedOnly
+          ? 'Everything you’ve hearted, in one place.'
+          : 'Six fragrance episodes, sealed in pocket-sized attar sachets, plus the extras to carry them. The fragrances come together in one box: the Complete Kit.'}
+      </p>
+      <div className="shop-tabs" role="tablist" aria-label="Shop view">
+        <a role="tab" aria-selected={!savedOnly} href="#shop">
+          All products
+        </a>
+        <a role="tab" aria-selected={savedOnly} href="#shop/saved">
+          <Heart size={15} fill={savedOnly ? 'currentColor' : 'none'} /> Saved ({savedCount})
+        </a>
+      </div>
+    </>
+  );
+}
+
+ShopHeroCopy.propTypes = {
+  savedOnly: PropTypes.bool.isRequired,
+  savedCount: PropTypes.number.isRequired
+};
+
+function ShopFilters({ open, filters, activeCount, fragrances, total, onToggle, onClear, onClose }) {
+  return (
+    <aside className={`shop-filters ${open ? 'open' : ''}`} aria-label="Filters">
+      <div className="sf-head">
+        <b>Filter fragrances</b>
+        {activeCount > 0 && (
+          <button className="sf-clear" onClick={onClear}>
+            Clear all
+          </button>
+        )}
+        <button className="sf-close" onClick={onClose} aria-label="Close filters">
+          <X size={20} />
+        </button>
+      </div>
+      {GROUPS.map((g) => (
+        <fieldset key={g} className="sf-group">
+          <legend>{ROUTES[g].label.replace('By ', '')}</legend>
+          {ROUTES[g].opts.map(([key, label]) => {
+            const count = fragrances.filter((p) => p.episode.f[g].includes(key)).length;
+            return (
+              <label key={key} className={`sf-opt ${count ? '' : 'off'}`}>
+                <input
+                  type="checkbox"
+                  checked={filters[g].includes(key)}
+                  disabled={!count}
+                  onChange={() => onToggle(g, key)}
+                />
+                <span>{label}</span>
+                <em>{count}</em>
+              </label>
+            );
+          })}
+        </fieldset>
+      ))}
+      <button className="btn blue wide sf-apply" onClick={onClose}>
+        Show {total} {total === 1 ? 'product' : 'products'}
+      </button>
+    </aside>
+  );
+}
+
+ShopFilters.propTypes = {
+  open: PropTypes.bool.isRequired,
+  filters: filtersShape.isRequired,
+  activeCount: PropTypes.number.isRequired,
+  fragrances: PropTypes.arrayOf(productShape).isRequired,
+  total: PropTypes.number.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  onClear: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired
+};
+
+function ShopEmpty({ nothingSaved, onClear }) {
+  return (
+    <div className="shop-empty">
+      <span className="icon" />
+      {nothingSaved ? (
+        <>
+          <b>Nothing saved yet.</b>
+          <p>Tap the heart on any product to keep it here.</p>
+          <a className="btn blue" href="#shop">Browse the shop</a>
+        </>
+      ) : (
+        <>
+          <b>No fragrance matches those filters.</b>
+          <p>Try removing a filter. Every fragrance is in the Complete Kit anyway.</p>
+          <button className="btn blue" onClick={onClear}>
+            Clear filters
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+ShopEmpty.propTypes = {
+  nothingSaved: PropTypes.bool.isRequired,
+  onClear: PropTypes.func.isRequired
+};
+
+function ShopRecent({ products }) {
+  return (
+    <section className="shop-recent">
+      <h2>Recently viewed</h2>
+      <div className="recent-row">
+        {products.map((p) => (
+          <a key={p.slug} href={`#product/${p.slug}`} className="recent-item">
+            <span
+              className="recent-swatch"
+              style={{ background: p.episode ? p.episode.pal.bg : 'var(--blue)' }}
+            >
+              <span className="icon" />
+            </span>
+            <span>{p.name}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+ShopRecent.propTypes = {
+  products: PropTypes.arrayOf(productShape).isRequired
+};
 
 export default function ShopPage({ catalog, savedOnly, wishlist, onToggleSaved, onAddToCart, recentlyViewed }) {
   const [filters, setFilters] = useState(emptyFilters);
@@ -33,9 +190,7 @@ export default function ShopPage({ catalog, savedOnly, wishlist, onToggleSaved, 
 
   const showKit = !!KIT && (!savedOnly || wishlist.includes(KIT.slug));
   // Extras (added in the admin panel) aren't fragrances, so the scent filters don't apply.
-  const shownExtras = [...(savedOnly ? extras.filter((p) => wishlist.includes(p.slug)) : extras)].sort(
-    sort === 'featured' ? () => 0 : (a, b) => (sort === 'za' ? -1 : 1) * a.name.localeCompare(b.name)
-  );
+  const shownExtras = [...(savedOnly ? extras.filter((p) => wishlist.includes(p.slug)) : extras)].sort(extrasSort(sort));
   const total = fragrances.length + (showKit ? 1 : 0) + shownExtras.length;
 
   const toggle = (group, key) =>
@@ -50,73 +205,21 @@ export default function ShopPage({ catalog, savedOnly, wishlist, onToggleSaved, 
     <div className="shop-page">
       <section className="shop-hero squig">
         <div className="wrap">
-          <nav className="crumbs" aria-label="Breadcrumb">
-            <a href="#top">Home</a>
-            <span>/</span>
-            {savedOnly ? (
-              <>
-                <a href="#shop">Shop</a>
-                <span>/</span>
-                <span aria-current="page">Saved</span>
-              </>
-            ) : (
-              <span aria-current="page">Shop</span>
-            )}
-          </nav>
-          <h1 className="bubble b-lime">{savedOnly ? 'Your saved camels' : 'Shop the camel'}</h1>
-          <p>
-            {savedOnly
-              ? 'Everything you’ve hearted, in one place.'
-              : 'Six fragrance episodes, sealed in pocket-sized attar sachets, plus the extras to carry them. The fragrances come together in one box: the Complete Kit.'}
-          </p>
-          <div className="shop-tabs" role="tablist" aria-label="Shop view">
-            <a role="tab" aria-selected={!savedOnly} href="#shop">
-              All products
-            </a>
-            <a role="tab" aria-selected={savedOnly} href="#shop/saved">
-              <Heart size={15} fill={savedOnly ? 'currentColor' : 'none'} /> Saved ({wishlist.length})
-            </a>
-          </div>
+          <ShopHeroCopy savedOnly={savedOnly} savedCount={wishlist.length} />
         </div>
       </section>
 
       <div className="wrap shop-layout">
-        <aside className={`shop-filters ${filtersOpen ? 'open' : ''}`} aria-label="Filters">
-          <div className="sf-head">
-            <b>Filter fragrances</b>
-            {activeCount > 0 && (
-              <button className="sf-clear" onClick={() => setFilters(emptyFilters())}>
-                Clear all
-              </button>
-            )}
-            <button className="sf-close" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
-              <X size={20} />
-            </button>
-          </div>
-          {GROUPS.map((g) => (
-            <fieldset key={g} className="sf-group">
-              <legend>{ROUTES[g].label.replace('By ', '')}</legend>
-              {ROUTES[g].opts.map(([key, label]) => {
-                const count = FRAGRANCES.filter((p) => p.episode.f[g].includes(key)).length;
-                return (
-                  <label key={key} className={`sf-opt ${count ? '' : 'off'}`}>
-                    <input
-                      type="checkbox"
-                      checked={filters[g].includes(key)}
-                      disabled={!count}
-                      onChange={() => toggle(g, key)}
-                    />
-                    <span>{label}</span>
-                    <em>{count}</em>
-                  </label>
-                );
-              })}
-            </fieldset>
-          ))}
-          <button className="btn blue wide sf-apply" onClick={() => setFiltersOpen(false)}>
-            Show {total} {total === 1 ? 'product' : 'products'}
-          </button>
-        </aside>
+        <ShopFilters
+          open={filtersOpen}
+          filters={filters}
+          activeCount={activeCount}
+          fragrances={FRAGRANCES}
+          total={total}
+          onToggle={toggle}
+          onClear={() => setFilters(emptyFilters())}
+          onClose={() => setFiltersOpen(false)}
+        />
         {filtersOpen && <div className="sf-scrim" onClick={() => setFiltersOpen(false)} />}
 
         <div className="shop-main">
@@ -173,24 +276,7 @@ export default function ShopPage({ catalog, savedOnly, wishlist, onToggleSaved, 
           </div>
 
           {total === 0 || (!fragrances.length && activeCount > 0) ? (
-            <div className="shop-empty">
-              <span className="icon" />
-              {savedOnly && !wishlist.length ? (
-                <>
-                  <b>Nothing saved yet.</b>
-                  <p>Tap the heart on any product to keep it here.</p>
-                  <a className="btn blue" href="#shop">Browse the shop</a>
-                </>
-              ) : (
-                <>
-                  <b>No fragrance matches those filters.</b>
-                  <p>Try removing a filter. Every fragrance is in the Complete Kit anyway.</p>
-                  <button className="btn blue" onClick={() => setFilters(emptyFilters())}>
-                    Clear filters
-                  </button>
-                </>
-              )}
-            </div>
+            <ShopEmpty nothingSaved={savedOnly && !wishlist.length} onClear={() => setFilters(emptyFilters())} />
           ) : null}
 
           <ul className="shop-assure">
@@ -212,26 +298,18 @@ export default function ShopPage({ catalog, savedOnly, wishlist, onToggleSaved, 
             </li>
           </ul>
 
-          {recent.length > 0 && !savedOnly && (
-            <section className="shop-recent">
-              <h2>Recently viewed</h2>
-              <div className="recent-row">
-                {recent.map((p) => (
-                  <a key={p.slug} href={`#product/${p.slug}`} className="recent-item">
-                    <span
-                      className="recent-swatch"
-                      style={{ background: p.episode ? p.episode.pal.bg : 'var(--blue)' }}
-                    >
-                      <span className="icon" />
-                    </span>
-                    <span>{p.name}</span>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
+          {recent.length > 0 && !savedOnly && <ShopRecent products={recent} />}
         </div>
       </div>
     </div>
   );
 }
+
+ShopPage.propTypes = {
+  catalog: catalogShape.isRequired,
+  savedOnly: PropTypes.bool.isRequired,
+  wishlist: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onToggleSaved: PropTypes.func.isRequired,
+  onAddToCart: PropTypes.func.isRequired,
+  recentlyViewed: PropTypes.arrayOf(PropTypes.string).isRequired
+};

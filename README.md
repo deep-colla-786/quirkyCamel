@@ -23,14 +23,26 @@ Production: `npm run build && npm start` (serves `dist/` and the API on `PORT`, 
 
 ## How it fits together
 
-- **Accounts:** `server/auth.js`. Passwords hashed with scrypt; sessions are random tokens in an HttpOnly cookie, stored hashed in the `sessions` collection (expire after 30 days).
+- **Accounts:** `server/auth.js`. Passwords are hashed with scrypt.
+- **Sessions:** `server/sessions.js`. The store and the admin panel have **separate sessions**, so signing in or out of one never affects the other:
+  - Store: cookie `qc_session`, lasts 30 days. Customers can "Log out everywhere" from their account page.
+  - Admin: cookie `qc_admin_session` (sent only to `/api/admin`, `SameSite=Strict`), ends after 30 minutes without activity or 8 hours at most. Only admin accounts can open one.
+  - Tokens are random and stored hashed; signing in replaces the browser's previous session; at most 10 sessions per user and area.
+  - The admin **Sessions** tab lists everyone signed in and can end a session, or all of a user's sessions.
+  - When a session ends (timeout, logout elsewhere, ended by an admin), the open page notices on its next request or when the tab is focused again.
 - **Checkout requires login.** Browsing and the cart are open; "Buy now", "Proceed to checkout" and all `/api/razorpay/*` and `/api/orders*` routes need a session.
 - **Payments:** `server/razorpay.js` creates the Razorpay order server-side (price computed on the server) and verifies the payment signature before marking an order `paid`.
-- **Admin panel:** a separate app at `/admin` (e.g. http://localhost:5173/admin), with its own login that only admin accounts can pass. It is built as its own bundle (`admin/index.html` → `src/admin/`), so store visitors never download it and the store has no link to it. Overview, orders, users, login activity, and products (add / edit / hide, image upload to `uploads/`).
+- **Admin panel:** a separate app at `/admin` (e.g. http://localhost:5173/admin), with its own login that only admin accounts can pass. It is built as its own bundle (`admin/index.html` → `src/admin/`), so store visitors never download it and the store has no link to it. Overview, orders (with **View invoice** for every paid order, shown exactly as emailed), users, login activity, sessions, and products (add / edit / hide, image upload to `uploads/`).
 - **Emails:** `server/mailer.js` sends an HTML invoice to the customer and a new-order alert to `ADMIN_EMAIL` after each paid order; the result is stored on the order.
 - **Products live in MongoDB.** The kit and six fragrances are seeded on first run; prices, stock and visibility are edited from the dashboard and checkout prices come from the database.
 - **Collections:** `users`, `sessions`, `logins`, `products`, `orders`. Indexes are created on first connection (`server/db.js`).
 - **API routes:** listed at the top of `server/api.js`.
+
+## Code quality
+
+- `npm run lint:sonar` runs ESLint with the SonarJS rules (the open-source rule set behind SonarQube's JavaScript analysis) plus the React and hooks rules. It should report 0 problems.
+- `sonar-project.properties` is ready for a SonarQube / SonarCloud scan (`sonar-scanner`).
+- React components declare their props with PropTypes; shared shapes are in `src/lib/propShapes.js` (store) and `src/admin/utils/shapes.js` (admin).
 
 ## Project structure
 
@@ -44,7 +56,7 @@ src/
     useCatalog.js            products from the API (falls back to the built-in copy)
     useCart.js               cart contents, drawer state, add-to-cart / buy-now
     useSavedItems.js         wishlist + recently viewed
-    useAuth.js               session user, login modal, requireLogin()
+    useAuth.js               session user, login modal, requireLogin(), session-ended handling
     useCheckout.js           Razorpay / demo payment and order confirmation
     useToast.js              toast message
   pages/                   one component per route
@@ -62,9 +74,9 @@ src/
   admin/                   admin app (separate bundle)
     main.jsx, AdminApp.jsx   entry + session gate
     AdminLogin.jsx, AdminDashboard.jsx
-    sections/                Overview, Orders, UsersTab, Logins, Products
-    components/              Stat, EmailBadge, MailBar, ResendButton, RevenueChart, ProductEditor
-    utils/                   format (dates, items), downloadCsv
+    sections/                Overview, Orders, UsersTab, Logins, Sessions, Products
+    components/              Stat, EmailBadge, MailBar, ResendButton, InvoiceModal, RevenueChart, ProductEditor
+    utils/                   format (dates, items), downloadCsv, shapes (PropTypes)
   lib/                     api client, catalog, razorpay loader, localStorage helpers
   data/                    episodes (copy, prices) and products
   utils/svgGenerators.js   generated sachet / kit / scene artwork
@@ -72,6 +84,6 @@ src/
     index.css                imports store/*.css in cascade order (one file per section)
     shop.css, auth.css       shop + product pages, login modal
     admin.css                admin panel only
-server/                    Node API (one module per concern: api routes, auth, db,
-                           products, razorpay, mailer, admin, http helpers, passwords)
+server/                    Node API (one module per concern: api routes, auth, sessions, db,
+                           products, razorpay, mailer, admin, env loader, http helpers, passwords)
 ```

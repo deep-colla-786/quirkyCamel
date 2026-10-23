@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Package, LogOut, MapPin, Mail, Phone } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { Package, LogOut, MapPin, Mail, Phone, MonitorSmartphone } from 'lucide-react';
 import { ordersApi } from '../lib/api';
 import { formatINR } from '../data/episodes';
+import { userShape } from '../lib/propShapes';
 
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-export default function AccountPage({ user, onLogin, onLogout }) {
+const orderStatusLabel = (o) => {
+  if (o.mode === 'demo') return 'Demo order';
+  if (o.status === 'paid') return 'Paid';
+  return o.status;
+};
+
+export default function AccountPage({ user, onLogin, onLogout, onLogoutAll }) {
   const [orders, setOrders] = useState(null);
   const [error, setError] = useState('');
 
@@ -56,9 +64,14 @@ export default function AccountPage({ user, onLogin, onLogout }) {
             <span className="pd-eyebrow">Your account</span>
             <h1>Hi, {user.name.split(' ')[0]}</h1>
           </div>
-          <button className="btn ghost-dark" onClick={onLogout}>
-            <LogOut size={17} /> Log out
-          </button>
+          <div className="account-actions">
+            <button className="btn ghost-dark" onClick={onLogout}>
+              <LogOut size={17} /> Log out
+            </button>
+            <button className="btn ghost-dark" onClick={onLogoutAll} title="End your sessions on every device">
+              <MonitorSmartphone size={17} /> Log out everywhere
+            </button>
+          </div>
         </div>
 
         <div className="account-grid">
@@ -107,7 +120,7 @@ export default function AccountPage({ user, onLogin, onLogout }) {
                     <div className="order-right">
                       <b>{formatINR(o.amount)}</b>
                       <span className={`order-status ${o.status}`}>
-                        {o.mode === 'demo' ? 'Demo order' : o.status === 'paid' ? 'Paid' : o.status}
+                        {orderStatusLabel(o)}
                       </span>
                     </div>
                   </li>
@@ -120,3 +133,10 @@ export default function AccountPage({ user, onLogin, onLogout }) {
     </div>
   );
 }
+
+AccountPage.propTypes = {
+  user: userShape,
+  onLogin: PropTypes.func.isRequired,
+  onLogout: PropTypes.func.isRequired,
+  onLogoutAll: PropTypes.func.isRequired
+};

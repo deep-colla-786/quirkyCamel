@@ -181,19 +181,31 @@ export async function sendOrderEmails(env, order, user) {
   return result;
 }
 
-// Re-send both emails for an existing order (admin "Resend" button).
-export async function resendOrderEmails(env, orderId) {
+async function loadPaidOrder(db, orderId) {
   if (!ObjectId.isValid(orderId)) throw new HttpError(404, 'Order not found.');
-  const db = await getDb(env);
   const order = await db.collection('orders').findOne({ _id: new ObjectId(orderId) });
-  if (!order || order.status !== 'paid') throw new HttpError(404, 'Order not found.');
+  if (order?.status !== 'paid') throw new HttpError(404, 'Order not found.');
   if (!order.items) {
     // Orders placed before multi-product checkout stored only a kit quantity.
     const qty = order.quantity || 1;
     order.items = [{ slug: 'the-complete-kit', name: 'The Complete Kit', price: order.amount / 100 / qty, qty }];
   }
+  return order;
+}
+
+// Re-send both emails for an existing order (admin "Resend" button).
+export async function resendOrderEmails(env, orderId) {
+  const db = await getDb(env);
+  const order = await loadPaidOrder(db, orderId);
   const user = await db.collection('users').findOne({ _id: order.userId }, { projection: { email: 1 } });
   return sendOrderEmails(env, order, user);
+}
+
+// The invoice exactly as emailed to the customer (admin "View invoice").
+export async function orderInvoice(env, orderId) {
+  const db = await getDb(env);
+  const order = await loadPaidOrder(db, orderId);
+  return { invoiceNumber: invoiceNumber(order), html: customerInvoice(order).html };
 }
 
 // Sends a simple test message; throws with an explained error on failure.

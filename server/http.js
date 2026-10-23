@@ -50,12 +50,12 @@ export function parseCookies(req) {
   return out;
 }
 
-export function setCookie(res, name, value, { maxAge, secure }) {
-  const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+export function setCookie(res, name, value, { maxAge, secure, path = '/', sameSite = 'Lax' }) {
+  const parts = [`${name}=${encodeURIComponent(value)}`, `Path=${path}`, 'HttpOnly', `SameSite=${sameSite}`];
   if (maxAge !== undefined) parts.push(`Max-Age=${maxAge}`);
   if (secure) parts.push('Secure');
-  const prev = res.getHeader('Set-Cookie');
-  res.setHeader('Set-Cookie', [...(Array.isArray(prev) ? prev : prev ? [prev] : []), parts.join('; ')]);
+  const prev = res.getHeader('Set-Cookie') ?? [];
+  res.setHeader('Set-Cookie', [...[prev].flat(), parts.join('; ')]);
 }
 
 export const clientIp = (req) =>

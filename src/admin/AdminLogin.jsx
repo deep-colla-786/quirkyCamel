@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Eye, EyeOff, Lock } from 'lucide-react';
-import { authApi } from '../lib/api';
+import { adminApi } from '../lib/api';
 
 export default function AdminLogin({ notice, onLoggedIn }) {
   const [email, setEmail] = useState('');
@@ -14,16 +15,11 @@ export default function AdminLogin({ notice, onLoggedIn }) {
     if (!email.trim() || !password) return setError('Enter your admin email and password.');
     setBusy(true);
     setError('');
-    const res = await authApi.login(email, password);
+    // The server only opens an admin session for admin accounts.
+    const res = await adminApi.login(email, password);
     if (!res.ok) {
       setBusy(false);
       return setError(res.data.error || 'Could not log in.');
-    }
-    if (res.data.user.role !== 'admin') {
-      // A customer account: end that session again and refuse.
-      await authApi.logout();
-      setBusy(false);
-      return setError('This account doesn’t have admin access.');
     }
     onLoggedIn(res.data.user);
   };
@@ -72,3 +68,8 @@ export default function AdminLogin({ notice, onLoggedIn }) {
     </main>
   );
 }
+
+AdminLogin.propTypes = {
+  notice: PropTypes.string,
+  onLoggedIn: PropTypes.func.isRequired
+};

@@ -1,6 +1,19 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Plus, Pencil } from 'lucide-react';
 import { formatINR } from '../../data/episodes';
+import { productShape } from '../utils/shapes';
+
+const TYPE_LABELS = { product: 'Extra', kit: 'Kit', fragrance: 'Fragrance' };
+
+// ∞ for unlimited stock, a red badge when sold out, otherwise the count.
+function StockCell({ stock }) {
+  if (stock === null) return '∞';
+  if (stock === 0) return <span className="ad-badge bad">0</span>;
+  return stock;
+}
+
+StockCell.propTypes = { stock: PropTypes.number };
 
 export default function Products({ products, onEdit, onAdd, onToggle }) {
   if (!products) return <p className="ad-muted">Loading…</p>;
@@ -46,14 +59,14 @@ export default function Products({ products, onEdit, onAdd, onToggle }) {
                   </div>
                 </td>
                 <td>
-                  <span className="ad-badge muted">{p.type === 'product' ? 'Extra' : p.type === 'kit' ? 'Kit' : 'Fragrance'}</span>
+                  <span className="ad-badge muted">{TYPE_LABELS[p.type] || 'Fragrance'}</span>
                 </td>
                 <td className="num">
                   {p.price ? formatINR(p.price) : <small>In kit</small>}
                   {p.mrp > p.price && <small className="strike">{formatINR(p.mrp)}</small>}
                 </td>
                 <td className="num">
-                  {p.stock === null ? '∞' : p.stock === 0 ? <span className="ad-badge bad">0</span> : p.stock}
+                  <StockCell stock={p.stock} />
                 </td>
                 <td className="num">{p.unitsSold}</td>
                 <td className="num">{p.revenue ? formatINR(p.revenue) : '—'}</td>
@@ -77,3 +90,10 @@ export default function Products({ products, onEdit, onAdd, onToggle }) {
     </section>
   );
 }
+
+Products.propTypes = {
+  products: PropTypes.arrayOf(productShape),
+  onEdit: PropTypes.func.isRequired,
+  onAdd: PropTypes.func.isRequired,
+  onToggle: PropTypes.func.isRequired
+};

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Check } from 'lucide-react';
 import Hero3D from '../kit3d/Hero3D';
 import { PRICE, formatINR } from '../../data/episodes';
@@ -62,3 +63,9 @@ export default function HeroSection({ onAddToCart, onNavigate, onOpenProduct }) 
     </section>
   );
 }
+
+HeroSection.propTypes = {
+  onAddToCart: PropTypes.func.isRequired,
+  onNavigate: PropTypes.func.isRequired,
+  onOpenProduct: PropTypes.func.isRequired
+};

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { ShoppingBag, Zap, Truck, ShieldCheck, Gift, Package } from 'lucide-react';
 import { EPISODES, formatINR } from '../../../data/episodes';
 import { KIT_SLUG, STORE_POLICY, MAX_QTY } from '../../../data/products';
 import { kitSVG } from '../../../utils/svgGenerators';
+import { productShape } from '../../../lib/propShapes';
 
 // Buy box: pack / quantity, gift note, add-to-cart / buy-now and the delivery PIN check.
 // `target` is what the buttons actually buy: the product itself, or the kit for a fragrance page.
@@ -130,3 +132,12 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
     </div>
   );
 }
+
+BuyPanel.propTypes = {
+  product: productShape.isRequired,
+  kit: productShape,
+  target: productShape,
+  available: PropTypes.bool.isRequired,
+  onAddToCart: PropTypes.func.isRequired,
+  onBuyNow: PropTypes.func.isRequired
+};

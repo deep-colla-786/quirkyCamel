@@ -130,9 +130,3 @@
   gap: 10px;
   justify-content: center;
 }
-
-@media print {
-  body * { visibility: hidden; }
-  .order-success-card, .order-success-card * { visibility: visible; }
-  .order-success-card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
-}

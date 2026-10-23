@@ -5,18 +5,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { apiMiddleware } from './api.js';
+import { loadEnv } from './env.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
 
-// Minimal .env loader (no extra dependency); real environment variables win.
-const envFile = path.join(root, '.env');
-if (fs.existsSync(envFile)) {
-  for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*([\w.]+)\s*=\s*(.*?)\s*$/);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '');
-  }
-}
+const env = loadEnv(root);
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -29,7 +23,7 @@ const TYPES = {
   '.json': 'application/json'
 };
 
-const api = apiMiddleware(process.env);
+const api = apiMiddleware(env);
 
 http
   .createServer((req, res) => {
@@ -45,6 +39,6 @@ http
       fs.createReadStream(file).pipe(res);
     });
   })
-  .listen(process.env.PORT || 3000, () => {
-    console.log(`Quirky Camel running on http://localhost:${process.env.PORT || 3000}`);
+  .listen(env.PORT || 3000, () => {
+    console.log(`Quirky Camel running on http://localhost:${env.PORT || 3000}`);
   });

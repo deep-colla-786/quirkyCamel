@@ -1,6 +1,7 @@
 // Read-only data for the admin dashboard. Every route using these is behind requireAdmin.
 import { getDb } from './db.js';
 import { invoiceNumber } from './mailer.js';
+import { listActiveSessions } from './sessions.js';
 
 const DAY = 864e5;
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -131,6 +132,7 @@ export async function listLogins(env, limit = 200) {
       id: String(r._id),
       email: r.email,
       type: r.type,
+      scope: r.scope || 'store',
       ip: r.ip,
       device: summarizeAgent(r.userAgent),
       at: r.at
@@ -169,8 +171,31 @@ export async function listOrders(env) {
 
 const escapeRe = (s) => String(s).slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// First match wins, so more specific agents come first (Edge also says "Chrome").
+const BROWSERS = [
+  [/Edg\//, 'Edge'],
+  [/Chrome\//, 'Chrome'],
+  [/Firefox\//, 'Firefox'],
+  [/Safari\//, 'Safari'],
+  [/curl/i, 'curl']
+];
+const SYSTEMS = [
+  [/Windows/, 'Windows'],
+  [/Android/, 'Android'],
+  [/iPhone|iPad/, 'iOS'],
+  [/Mac OS/, 'macOS'],
+  [/Linux/, 'Linux']
+];
+const firstMatch = (list, ua, fallback) => list.find(([re]) => re.test(ua))?.[1] ?? fallback;
+
 function summarizeAgent(ua = '') {
-  const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : /curl/i.test(ua) ? 'curl' : 'Other';
-  const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac OS/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '';
+  const browser = firstMatch(BROWSERS, ua, 'Other');
+  const os = firstMatch(SYSTEMS, ua, '');
   return os ? `${browser} · ${os}` : browser;
+}
+
+// Active store + admin sessions for the Sessions tab.
+export async function listSessions(env, currentSessionId) {
+  const sessions = await listActiveSessions(env, currentSessionId);
+  return { sessions: sessions.map(({ userAgent, ...s }) => ({ ...s, device: summarizeAgent(userAgent) })) };
 }

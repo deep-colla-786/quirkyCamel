@@ -1,9 +1,11 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { EPISODES, formatINR } from '../../data/episodes';
 import { KIT, productHash } from '../../data/products';
 import { inStock } from '../../lib/catalog';
 import { productArt } from './productArt';
+import { productShape } from '../../lib/propShapes';
 
 // Image for products added in the admin panel (no generated artwork).
 export function ProductImage({ product, className = '' }) {
@@ -14,6 +16,20 @@ export function ProductImage({ product, className = '' }) {
   );
 }
 
+ProductImage.propTypes = {
+  product: productShape.isRequired,
+  className: PropTypes.string
+};
+
+// Corner badge: stock / discount for the kit and extras, the episode number for fragrances.
+function cardBadge(product, available) {
+  if (product.type !== 'kit' && product.type !== 'product') return `Episode 0${product.episode.n}`;
+  if (!available) return 'Out of stock';
+  if (product.discountPct > 0) return `Save ${product.discountPct}%`;
+  if (product.type === 'product') return 'Extra';
+  return null;
+}
+
 export default function ProductCard({ product, featured = false, saved, onToggleSaved, onAddToCart }) {
   const isKit = product.type === 'kit';
   const isExtra = product.type === 'product';
@@ -21,15 +37,7 @@ export default function ProductCard({ product, featured = false, saved, onToggle
   const href = productHash(product.slug);
   const available = inStock(product);
 
-  const badge = isKit || isExtra
-    ? !available
-      ? 'Out of stock'
-      : product.discountPct > 0
-        ? `Save ${product.discountPct}%`
-        : isExtra
-          ? 'Extra'
-          : null
-    : `Episode 0${ep.n}`;
+  const badge = cardBadge(product, available);
 
   return (
     <article
@@ -113,3 +121,11 @@ export default function ProductCard({ product, featured = false, saved, onToggle
     </article>
   );
 }
+
+ProductCard.propTypes = {
+  product: productShape.isRequired,
+  featured: PropTypes.bool,
+  saved: PropTypes.bool.isRequired,
+  onToggleSaved: PropTypes.func.isRequired,
+  onAddToCart: PropTypes.func.isRequired
+};

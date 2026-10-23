@@ -41,12 +41,22 @@ export default function App() {
     loadCatalog
   });
 
-  const handleLogout = async () => {
-    await authApi.logout();
+  const signedOut = (message) => {
     setUser(null);
     cart.setIsCartOpen(false);
-    showToast('You have been logged out.');
+    showToast(message);
     goTo('#top');
+  };
+
+  const handleLogout = async () => {
+    await authApi.logout();
+    signedOut('You have been logged out.');
+  };
+
+  const handleLogoutAll = async () => {
+    const res = await authApi.logoutAll();
+    if (!res.ok) return showToast(res.data.error || 'Could not log out of your other devices.');
+    signedOut('Logged out on all your devices.');
   };
 
   const handleSelectEpisode = (epId) => goTo(`#${epId}`);
@@ -65,7 +75,6 @@ export default function App() {
         user={user}
         authChecked={authChecked}
         onLogin={() => openAuth('login')}
-        onLogout={handleLogout}
       />
 
       <main>
@@ -90,7 +99,12 @@ export default function App() {
         )}
 
         {currentView === 'account' && (
-          <AccountPage user={user} onLogin={(mode) => openAuth(mode)} onLogout={handleLogout} />
+          <AccountPage
+            user={user}
+            onLogin={(mode) => openAuth(mode)}
+            onLogout={handleLogout}
+            onLogoutAll={handleLogoutAll}
+          />
         )}
 
         {currentView === 'shop' && (
@@ -135,7 +149,6 @@ export default function App() {
         giftNote={cart.giftNote}
         user={user}
         onRequireLogin={(action) => requireLogin(action)}
-        onSelectEpisode={handleSelectEpisode}
       />
 
       {/* Demo Razorpay checkout (used while the Razorpay keys are placeholders) */}
@@ -143,7 +156,6 @@ export default function App() {
         isOpen={checkout.isRazorpayOpen}
         onClose={checkout.closeRazorpay}
         amount={checkout.pendingCheckout?.amount || PRICE}
-        orderDetails={checkout.pendingCheckout}
         customerDetails={checkout.pendingCheckout?.customer}
         onPaymentSuccess={checkout.handleDemoPaymentSuccess}
         onPaymentFailure={checkout.handlePaymentFailure}

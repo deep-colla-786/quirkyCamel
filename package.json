@@ -9,13 +9,15 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "mail:test": "node scripts/test-mail.mjs"
+    "mail:test": "node scripts/test-mail.mjs",
+    "lint:sonar": "eslint ."
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",
     "nodemailer": "^10.2.0",
+    "prop-types": "^15.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "^0.186.1"
@@ -23,8 +25,16 @@
   "devDependencies": {
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@typescript-eslint/utils": "^8.72.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-sonarjs": "^3.0.7",
+    "globals": "^15.15.0",
     "oxlint": "^1.88.0",
+    "ts-api-utils": "^2.5.0",
+    "typescript": "^5.9.3",
     "vite": "^8.3.4"
   }
 }

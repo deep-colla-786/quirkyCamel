@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Search } from 'lucide-react';
 import { FAQS } from '../../data/episodes';
 
-export default function FaqSection({ onSpinClick, onShopKit, onSelectEpisode }) {
+export default function FaqSection({ onSpinClick, onShopKit }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [openIndex, setOpenIndex] = useState(0);
 
@@ -100,3 +101,8 @@ export default function FaqSection({ onSpinClick, onShopKit, onSelectEpisode }) 
     </section>
   );
 }
+
+FaqSection.propTypes = {
+  onSpinClick: PropTypes.func.isRequired,
+  onShopKit: PropTypes.func.isRequired
+};

@@ -3,8 +3,9 @@
 // Collections:
 //   users    { email, name, phone, role: 'customer'|'admin', passwordHash, address,
 //              createdAt, updatedAt, lastLoginAt }
-//   sessions { tokenHash, userId, createdAt, expiresAt }       (TTL index removes expired)
-//   logins   { userId, email, type: 'signup'|'login'|'failed'|'logout', ip, userAgent, at }
+//   sessions { tokenHash, userId, scope: 'store'|'admin', createdAt, lastSeenAt, expiresAt,
+//              ip, userAgent }                                 (TTL index removes expired)
+//   logins   { userId, email, type: 'signup'|'login'|'failed'|'logout', scope, ip, userAgent, at }
 //   products { slug, name, type: 'kit'|'fragrance'|'product', tagline, description, price,
 //              mrp, stock (null = unlimited), active, image, builtIn, createdAt, updatedAt }
 //   orders   { userId, items[{slug,name,price,qty}], amount (paise), currency, status, mode,
@@ -27,6 +28,7 @@ export function getDb(env) {
           db.collection('users').createIndex({ email: 1 }, { unique: true }),
           db.collection('sessions').createIndex({ tokenHash: 1 }, { unique: true }),
           db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+          db.collection('sessions').createIndex({ userId: 1, scope: 1, createdAt: -1 }),
           db.collection('logins').createIndex({ at: -1 }),
           db.collection('logins').createIndex({ userId: 1, at: -1 }),
           db.collection('products').createIndex({ slug: 1 }, { unique: true }),

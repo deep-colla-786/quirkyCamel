@@ -11,13 +11,22 @@ import { HttpError } from './http.js';
 export const UPLOAD_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
 const clip = (v, n) => String(v ?? '').trim().slice(0, n);
+// Removes leading and trailing dashes (a loop instead of a backtracking regex).
+function trimDashes(s) {
+  let start = 0;
+  let end = s.length;
+  while (start < end && s[start] === '-') start++;
+  while (end > start && s[end - 1] === '-') end--;
+  return s.slice(start, end);
+}
+
 const slugify = (s) =>
-  String(s)
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
+  trimDashes(
+    String(s)
+      .toLowerCase()
+      .normalize('NFKD')
+      .replaceAll(/[^a-z0-9]+/g, '-')
+  ).slice(0, 60);
 
 export const isBuyable = (p) => p && p.active && (p.type === 'kit' || p.type === 'product') && p.price > 0;
 
@@ -58,44 +67,68 @@ export async function listAllProducts(env) {
   };
 }
 
+const isBlank = (v) => v === null || v === '';
+const UPLOAD_URL_RE = /^\/uploads\/[a-f0-9]{24}\.(?:png|jpe?g|webp)$/;
+
+// Each validator turns one submitted field into its stored value, or throws a 400.
+function readName(value) {
+  const name = clip(value, 80);
+  if (name.length < 2) throw new HttpError(400, 'Product name is required.');
+  return name;
+}
+
+function readPrice(value) {
+  const price = Math.round(Number(value));
+  if (!Number.isFinite(price) || price < 1 || price > 1e6) throw new HttpError(400, 'Price must be between ₹1 and ₹10,00,000.');
+  return price;
+}
+
+function readMrp(value, price) {
+  if (isBlank(value)) return null;
+  const mrp = Math.round(Number(value));
+  if (!Number.isFinite(mrp) || mrp < price) throw new HttpError(400, 'MRP must be empty or at least the selling price.');
+  return mrp;
+}
+
+function readStock(value) {
+  if (isBlank(value)) return null;
+  const stock = Math.round(Number(value));
+  if (!Number.isFinite(stock) || stock < 0) throw new HttpError(400, 'Stock must be 0 or more (leave empty for unlimited).');
+  return stock;
+}
+
+function readImage(value) {
+  const image = value ? clip(value, 300) : null;
+  if (image && !UPLOAD_URL_RE.test(image)) throw new HttpError(400, 'Invalid image.');
+  return image;
+}
+
+// Validates the submitted fields; only fields present in `body` are returned.
+// Fragrance prices are never edited (they're sold inside the kit).
 function readFields(body, existing) {
   const out = {};
-  if (body.name !== undefined) {
-    out.name = clip(body.name, 80);
-    if (out.name.length < 2) throw new HttpError(400, 'Product name is required.');
-  }
-  if (body.tagline !== undefined) out.tagline = clip(body.tagline, 160);
-  if (body.description !== undefined) out.description = clip(body.description, 3000);
-  const type = existing?.type || body.type || 'product';
-  if (body.price !== undefined && type !== 'fragrance') {
-    const price = Math.round(Number(body.price));
-    if (!Number.isFinite(price) || price < 1 || price > 1e6) throw new HttpError(400, 'Price must be between ₹1 and ₹10,00,000.');
-    out.price = price;
-  }
-  if (body.mrp !== undefined && type !== 'fragrance') {
-    if (body.mrp === null || body.mrp === '') out.mrp = null;
-    else {
-      const mrp = Math.round(Number(body.mrp));
-      const price = out.price ?? existing?.price;
-      if (!Number.isFinite(mrp) || mrp < price) throw new HttpError(400, 'MRP must be empty or at least the selling price.');
-      out.mrp = mrp;
-    }
-  }
-  if (body.stock !== undefined) {
-    if (body.stock === null || body.stock === '') out.stock = null;
-    else {
-      const stock = Math.round(Number(body.stock));
-      if (!Number.isFinite(stock) || stock < 0) throw new HttpError(400, 'Stock must be 0 or more (leave empty for unlimited).');
-      out.stock = stock;
-    }
-  }
-  if (body.active !== undefined) out.active = !!body.active;
-  if (body.image !== undefined) {
-    const image = body.image ? clip(body.image, 300) : null;
-    if (image && !/^\/uploads\/[a-f0-9]{24}\.(png|jpe?g|webp)$/.test(image)) throw new HttpError(400, 'Invalid image.');
-    out.image = image;
-  }
+  const has = (key) => body[key] !== undefined;
+  const priced = (existing?.type || body.type || 'product') !== 'fragrance';
+  if (has('name')) out.name = readName(body.name);
+  if (has('tagline')) out.tagline = clip(body.tagline, 160);
+  if (has('description')) out.description = clip(body.description, 3000);
+  if (priced && has('price')) out.price = readPrice(body.price);
+  if (priced && has('mrp')) out.mrp = readMrp(body.mrp, out.price ?? existing?.price);
+  if (has('stock')) out.stock = readStock(body.stock);
+  if (has('active')) out.active = !!body.active;
+  if (has('image')) out.image = readImage(body.image);
   return out;
+}
+
+// The first free slug among base, base-2, base-3, …
+async function uniqueSlug(db, base) {
+  let slug = base;
+  let n = 2;
+  while (await db.collection('products').findOne({ slug }, { projection: { _id: 1 } })) {
+    slug = `${base}-${n}`;
+    n++;
+  }
+  return slug;
 }
 
 export async function createProduct(env, body) {
@@ -104,8 +137,7 @@ export async function createProduct(env, body) {
   if (!fields.price) throw new HttpError(400, 'Price is required.');
   const db = await getDb(env);
   const base = slugify(body.slug || fields.name) || 'product';
-  let slug = base;
-  for (let i = 2; await db.collection('products').findOne({ slug }, { projection: { _id: 1 } }); i++) slug = `${base}-${i}`;
+  const slug = await uniqueSlug(db, base);
   const now = new Date();
   const doc = {
     slug,

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { PRICE, formatINR } from '../../data/episodes';
 
 export default function CompareSection({ onAddToCart, onNavigateToProduct }) {
@@ -44,7 +45,7 @@ export default function CompareSection({ onAddToCart, onNavigateToProduct }) {
               <li>
                 <span className="mk">?</span>
                 <span>
-                  <small>GIFTING</small>Guessing someone's exact signature scent is high-risk
+                  <small>GIFTING</small>Guessing someone&apos;s exact signature scent is high-risk
                 </span>
               </li>
             </ul>
@@ -109,3 +110,8 @@ export default function CompareSection({ onAddToCart, onNavigateToProduct }) {
     </section>
   );
 }
+
+CompareSection.propTypes = {
+  onAddToCart: PropTypes.func.isRequired,
+  onNavigateToProduct: PropTypes.func.isRequired
+};

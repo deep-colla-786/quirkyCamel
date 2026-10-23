@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Star } from 'lucide-react';
 
 export default function Reviews({ reviews }) {
@@ -32,3 +33,15 @@ export default function Reviews({ reviews }) {
     </section>
   );
 }
+
+Reviews.propTypes = {
+  reviews: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      rating: PropTypes.number,
+      title: PropTypes.string,
+      body: PropTypes.string,
+      author: PropTypes.string
+    })
+  ).isRequired
+};

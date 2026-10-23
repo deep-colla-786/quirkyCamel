@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { formatINR, EPISODES } from '../../data/episodes';
-import { CheckCircle2, Download, Package, Truck, ArrowRight, X } from 'lucide-react';
+import PropTypes from 'prop-types';
+import { CheckCircle2, ArrowRight, X } from 'lucide-react';
+import { catalogShape, customerShape } from '../../lib/propShapes';
 
 export default function OrderSuccessModal({
   isOpen,
@@ -19,17 +21,13 @@ export default function OrderSuccessModal({
           spread: 70,
           origin: { y: 0.6 }
         });
-      } catch (e) {
-        // Safe fallback
+      } catch {
+        // Confetti is decorative only; if it fails the confirmation still shows.
       }
     }
   }, [isOpen]);
 
   if (!isOpen || !paymentData) return null;
-
-  const handlePrintReceipt = () => {
-    window.print();
-  };
 
   return (
     <div className="order-success-scrim" role="dialog" aria-modal="true">
@@ -114,9 +112,6 @@ export default function OrderSuccessModal({
 
         {/* Buttons */}
         <div className="success-actions">
-          <button className="btn ghost-dark" onClick={handlePrintReceipt}>
-            <Download size={16} /> Print / Save Invoice
-          </button>
           <button className="btn blue" onClick={onClose}>
             Continue Exploring <ArrowRight size={16} />
           </button>
@@ -125,3 +120,19 @@ export default function OrderSuccessModal({
     </div>
   );
 }
+
+OrderSuccessModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  paymentData: PropTypes.shape({
+    orderId: PropTypes.string,
+    paymentId: PropTypes.string,
+    amount: PropTypes.number
+  }),
+  customerData: customerShape,
+  items: PropTypes.arrayOf(PropTypes.shape({
+    slug: PropTypes.string.isRequired,
+    qty: PropTypes.number.isRequired
+  })),
+  catalog: catalogShape
+};

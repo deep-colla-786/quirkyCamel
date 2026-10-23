@@ -34,6 +34,7 @@ export function wrapSVG(content, label) {
 export const SCENES = {
   'trouble-in-oasis'() {
     const u = 'o' + (++uidN);
+    const ripples = L(26, `<g opacity=".45" stroke="#fff" stroke-width="2" fill="none"><path d="M20 130 q20 -8 40 0 t40 0">${animT('translate', '0 0;0 -6;0 0', 3)}</path><path d="M300 150 q20 -8 40 0 t40 0">${animT('translate', '0 0;0 -6;0 0', 3.6)}</path></g>`);
     return wrapSVG(
       `<defs><linearGradient id="${u}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3a3"/><stop offset="1" stop-color="#ffb35a"/></linearGradient>
    <radialGradient id="${u}w" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#7cf0f2"/><stop offset="1" stop-color="#1590a8"/></radialGradient>
@@ -49,7 +50,7 @@ export const SCENES = {
        <g fill="#7fbf2a">${animT('rotate', '-3 8 -110;3 8 -110;-3 8 -110', 5)}<path d="M8-110 q-40-10-62 18 q32-14 62-18z"/><path d="M8-110 q40-14 62 14 q-30-12-62-14z"/><path d="M8-110 q-20-34 4-56 q-6 30-4 56z"/><path d="M8-110 q30-26 54-14 q-30 0-54 14z"/></g></g>
      ${camel(140, 198, 124, '#2259B2')}
      <g transform="translate(150 166)"><rect x="-4" y="-26" width="40" height="30" rx="12" fill="#fff"/><path d="M8 4 l-6 10 12-10z" fill="#fff"/><text x="16" y="-4" text-anchor="middle" font-family="Bagel Fat One, sans-serif" font-size="20" fill="#e0812a">!?</text>${animT('translate', '150 166;150 160;150 166', 1.6, 'additive="replace"')}</g>`)}
-   ${L(26, `<g opacity=".45" stroke="#fff" stroke-width="2" fill="none"><path d="M20 130 q20 -8 40 0 t40 0">${animT('translate', '0 0;0 -6;0 0', 3)}</path><path d="M300 150 q20 -8 40 0 t40 0">${animT('translate', '0 0;0 -6;0 0', 3.6)}</path></g>`)}`,
+   ${ripples}`,
       'A blue camel finds a hidden pool of water among orange desert dunes'
     );
   },
@@ -60,7 +61,9 @@ export const SCENES = {
       const x = (i * 73) % 480,
         y = (i * 37) % 170,
         r = (i % 3) + 1;
-      stars += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff">${anim('opacity', `${.2 + (i % 4) * .2};1;${.2 + (i % 4) * .2}`, 2 + (i % 5) * .6)}</circle>`;
+      const dim = .2 + (i % 4) * .2;
+      const twinkle = `${dim};1;${dim}`;
+      stars += `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff">${anim('opacity', twinkle, 2 + (i % 5) * .6)}</circle>`;
     }
     let wins = '';
     for (let i = 0; i < 34; i++) {
@@ -101,7 +104,8 @@ export const SCENES = {
     }
     let drops = '';
     for (let i = 0; i < 9; i++) {
-      drops += `<path d="M${74 + i * 9} 70 q-3 6 0 9 q3 -3 0 -9z" fill="#5fc8ff"><animateTransform attributeName="transform" type="translate" values="0 0;${i * 4 - 14} 90" dur="1.1s" begin="-${i * .13}s" repeatCount="indefinite"/>${anim('opacity', '1;0', 1.1, `begin="-${i * .13}s"`)}</path>`;
+      const fadeBegin = `begin="-${i * .13}s"`;
+      drops += `<path d="M${74 + i * 9} 70 q-3 6 0 9 q3 -3 0 -9z" fill="#5fc8ff"><animateTransform attributeName="transform" type="translate" values="0 0;${i * 4 - 14} 90" dur="1.1s" begin="-${i * .13}s" repeatCount="indefinite"/>${anim('opacity', '1;0', 1.1, fadeBegin)}</path>`;
     }
     return wrapSVG(
       `<defs><linearGradient id="${u}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8ecff"/><stop offset="1" stop-color="#8fd3ff"/></linearGradient></defs>
@@ -118,6 +122,14 @@ export const SCENES = {
   },
   'mirage'() {
     const u = 'r' + (++uidN);
+    const sunHat = `<ellipse cx="60" cy="6" rx="62" ry="14" fill="#fff6e0"/><path d="M28 4 q32 -46 66 0z" fill="#fff6e0"/><path d="M28 2 q34 8 66 0" stroke="#ff4f6d" stroke-width="7" fill="none"/>`;
+    const bubbles = [[40, 180, 14], [440, 200, 10], [110, 320, 9], [420, 300, 16]]
+      .map(([x, y, r], i) => {
+        const bob = `${y};${y - 16};${y}`;
+        return `<circle cx="${x}" cy="${y}" r="${r}">${anim('cy', bob, 3 + i)}</circle>`;
+      })
+      .join('');
+    const bubbleLayer = L(28, `<g fill="#fff" fill-opacity=".25" stroke="#fff" stroke-width="2">${bubbles}</g>`);
     return wrapSVG(
       `<defs><linearGradient id="${u}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8fa3"/><stop offset=".55" stop-color="#ffc3a0"/><stop offset="1" stop-color="#ffe2b5"/></linearGradient>
    <linearGradient id="${u}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cf3e3"/><stop offset="1" stop-color="#1fb3c7"/></linearGradient>
@@ -131,9 +143,9 @@ export const SCENES = {
    ${L(14, `<g>${animT('translate', '0 0;0 -10;0 0', 4)}<g transform="translate(60 70) rotate(-18)"><path d="M0 0 a60 60 0 0 0 120 0z" fill="#2fb34a"/><path d="M8 0 a52 52 0 0 0 104 0z" fill="#fff6e0"/><path d="M14 0 a46 46 0 0 0 92 0z" fill="#ff4f6d"/><g fill="#2a1420"><ellipse cx="40" cy="14" rx="3" ry="5"/><ellipse cx="60" cy="24" rx="3" ry="5"/><ellipse cx="80" cy="14" rx="3" ry="5"/></g></g></g>
      <g>${animT('translate', '0 0;0 8;0 0', 5)}<g transform="translate(400 60)"><circle r="34" fill="#FF9100"/><circle r="28" fill="#ffd27a"/><g stroke="#FF9100" stroke-width="3">${[0, 45, 90, 135].map(a => `<line x1="0" y1="-28" x2="0" y2="28" transform="rotate(${a})"/>`).join('')}</g><circle r="4" fill="#fff"/></g></g>
      <g>${animT('translate', '0 0;0 -8;0 0', 3.5)}<g transform="translate(150 22)"><path d="M0 30 q-10 -24 6 -30 M0 30 q16 -26 30 -20" stroke="#3fae5a" stroke-width="3" fill="none"/><circle cx="-4" cy="34" r="10" fill="#e8174a"/><circle cx="20" cy="36" r="10" fill="#e8174a"/></g></g>`)}
-   ${L(20, `<g>${anim('opacity', '1;.55;1', 3.2)}${camel(150, 176, 170, '#2259B2', `<ellipse cx="60" cy="6" rx="62" ry="14" fill="#fff6e0"/><path d="M28 4 q32 -46 66 0z" fill="#fff6e0"/><path d="M28 2 q34 8 66 0" stroke="#ff4f6d" stroke-width="7" fill="none"/>`)}</g>
+   ${L(20, `<g>${anim('opacity', '1;.55;1', 3.2)}${camel(150, 176, 170, '#2259B2', sunHat)}</g>
      <ellipse cx="236" cy="312" rx="96" ry="12" fill="#1fb3c7" opacity=".6"/>`)}
-   ${L(28, `<g fill="#fff" fill-opacity=".25" stroke="#fff" stroke-width="2">${[[40, 180, 14], [440, 200, 10], [110, 320, 9], [420, 300, 16]].map(([x, y, r], i) => `<circle cx="${x}" cy="${y}" r="${r}">${anim('cy', `${y};${y - 16};${y}`, 3 + i)}</circle>`).join('')}</g>`)}`,
+   ${bubbleLayer}`,
       'A shimmering blue camel in a sun hat stands in a tropical sea under floating giant fruit'
     );
   },
@@ -141,8 +153,18 @@ export const SCENES = {
     const u = 'f' + (++uidN);
     const date = (x, y, r, rot) =>
       `<g transform="translate(${x} ${y}) rotate(${rot})"><ellipse rx="${r * 1.5}" ry="${r}" fill="#5a2210"/><ellipse rx="${r * 1.5}" ry="${r}" fill="none" stroke="#3a1408" stroke-width="2"/><path d="M${-r} ${-r * .3} q${r} ${-r * .4} ${r * 2} 0" stroke="#8a3d1c" stroke-width="${r * .25}" fill="none" stroke-linecap="round"/><ellipse cx="${-r * .5}" cy="${-r * .4}" rx="${r * .4}" ry="${r * .18}" fill="#c06a3c" opacity=".8"/></g>`;
-    const fig = (x, y, s, cut) =>
-      `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 -40 q-6 6 -6 14 q-30 10 -30 40 a36 36 0 0 0 72 0 q0 -30 -30 -40 q0 -8 -6 -14z" fill="#7a2c5c"/>${cut ? '<ellipse cx="0" cy="16" rx="26" ry="22" fill="#ff8aa0"/><ellipse cx="0" cy="16" rx="18" ry="15" fill="#d9415e"/><g fill="#fff3c4">' + Array.from({ length: 10 }, (_, i) => `<circle cx="${Math.cos(i) * 10}" cy="${16 + Math.sin(i * 1.7) * 9}" r="1.6"/>`).join('') + '</g>' : '<ellipse cx="-12" cy="0" rx="6" ry="14" fill="#a24a82" opacity=".7"/>'}<path d="M0 -40 q4 -10 12 -12" stroke="#3fae5a" stroke-width="4" fill="none" stroke-linecap="round"/></g>`;
+    const figSeeds = () =>
+      Array.from({ length: 10 }, (_, i) => `<circle cx="${Math.cos(i) * 10}" cy="${16 + Math.sin(i * 1.7) * 9}" r="1.6"/>`).join('');
+    const fig = (x, y, s, cut) => {
+      const flesh = cut
+        ? '<ellipse cx="0" cy="16" rx="26" ry="22" fill="#ff8aa0"/><ellipse cx="0" cy="16" rx="18" ry="15" fill="#d9415e"/><g fill="#fff3c4">' + figSeeds() + '</g>'
+        : '<ellipse cx="-12" cy="0" rx="6" ry="14" fill="#a24a82" opacity=".7"/>';
+      return `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 -40 q-6 6 -6 14 q-30 10 -30 40 a36 36 0 0 0 72 0 q0 -30 -30 -40 q0 -8 -6 -14z" fill="#7a2c5c"/>${flesh}<path d="M0 -40 q4 -10 12 -12" stroke="#3fae5a" stroke-width="4" fill="none" stroke-linecap="round"/></g>`;
+    };
+    const crumbs = [[260, 330], [280, 340], [110, 340], [440, 250]]
+      .map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="9" ry="5" transform="rotate(${i * 40} ${x} ${y})"/>`)
+      .join('');
+    const foreground = L(30, `${fig(330, 300, 1.1, true)}<g>${animT('rotate', '-6 150 300;6 150 300;-6 150 300', 3)}${date(150, 320, 18, 4)}</g><g fill="#e8d2a6">${crumbs}</g>`);
     return wrapSVG(
       `<defs><linearGradient id="${u}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9d4d"/><stop offset="1" stop-color="#ffcf7a"/></linearGradient></defs>
    <rect width="480" height="360" fill="url(#${u}s)"/>
@@ -151,7 +173,7 @@ export const SCENES = {
    ${L(12, `<path d="M-10 262 Q140 226 260 260 T490 250 V360 H-10z" fill="#b4461f"/>`)}
    ${L(16, `${fig(400, 150, 1.6, false)}${date(70, 300, 22, -14)}${date(410, 310, 26, 10)}`)}
    ${L(22, camel(150, 150, 170, '#C4E539', `<g transform="translate(-6 40) rotate(20)">${date(0, 0, 14, 0)}</g><path d="M-30 30 l-14 -4 M-30 42 l-16 4 M-26 54 l-12 10" stroke="#fff3e6" stroke-width="5" stroke-linecap="round">${anim('opacity', '0;1;0', 1.4)}</path>`) + `<ellipse cx="236" cy="286" rx="96" ry="10" fill="#5a2210" opacity=".25"/>`)}
-   ${L(30, `${fig(330, 300, 1.1, true)}<g>${animT('rotate', '-6 150 300;6 150 300;-6 150 300', 3)}${date(150, 320, 18, 4)}</g><g fill="#e8d2a6">${[[260, 330], [280, 340], [110, 340], [440, 250]].map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="9" ry="5" transform="rotate(${i * 40} ${x} ${y})"/>`).join('')}</g>`)}`,
+   ${foreground}`,
       'A lime camel snacking on a giant date among oversized dates and figs in a warm desert'
     );
   },

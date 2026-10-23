@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import HeroSection from '../components/home/HeroSection';
 import MarqueeTicker from '../components/home/MarqueeTicker';
 import SachetRitual from '../components/home/SachetRitual';
@@ -48,7 +49,6 @@ export default function HomePage({
         onAddToCart={onAddToCart}
         onBuyNow={onBuyNow}
         onSelectEpisode={onSelectEpisode}
-        onNavigateToProduct={() => onNavigate('product-kit')}
       />
 
       {/* Manifesto / Boop The Camel */}
@@ -64,8 +64,16 @@ export default function HomePage({
           if (el) el.scrollIntoView({ behavior: 'smooth' });
         }}
         onShopKit={() => onNavigate('home', 'kit')}
-        onSelectEpisode={onSelectEpisode}
       />
     </div>
   );
 }
+
+HomePage.propTypes = {
+  activeEpisodeId: PropTypes.string.isRequired,
+  onAddToCart: PropTypes.func.isRequired,
+  onBuyNow: PropTypes.func.isRequired,
+  onSelectEpisode: PropTypes.func.isRequired,
+  onNavigate: PropTypes.func.isRequired,
+  onOpenProduct: PropTypes.func.isRequired
+};

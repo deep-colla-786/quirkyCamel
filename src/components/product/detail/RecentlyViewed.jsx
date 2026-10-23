@@ -1,4 +1,6 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+import { productShape } from '../../../lib/propShapes';
 
 export default function RecentlyViewed({ products }) {
   return (
@@ -17,3 +19,7 @@ export default function RecentlyViewed({ products }) {
     </section>
   );
 }
+
+RecentlyViewed.propTypes = {
+  products: PropTypes.arrayOf(productShape).isRequired
+};

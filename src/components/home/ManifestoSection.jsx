@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import confetti from 'canvas-confetti';
 import { MANIFESTO_QUOTES } from '../../data/episodes';
 import { CAMEL_MASCOT_WEBP } from '../../utils/svgGenerators';
@@ -20,8 +21,8 @@ export default function ManifestoSection({ onExploreEpisodes, onShopKit }) {
         origin: { y: 0.7 },
         colors: ['#C4E539', '#7616C1', '#FF9100', '#2259B2']
       });
-    } catch (e) {
-      // safe fallback
+    } catch {
+      // Confetti is decorative only; ignoring a failure leaves the rest of the boop intact.
     }
 
     setTimeout(() => setWiggling(false), 600);
@@ -106,3 +107,8 @@ export default function ManifestoSection({ onExploreEpisodes, onShopKit }) {
     </section>
   );
 }
+
+ManifestoSection.propTypes = {
+  onExploreEpisodes: PropTypes.func.isRequired,
+  onShopKit: PropTypes.func.isRequired
+};

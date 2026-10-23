@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { PRICE, formatINR, EPISODES } from '../../data/episodes';
 import { kitSVG } from '../../utils/svgGenerators';
 import { Zap } from 'lucide-react';
@@ -54,3 +55,9 @@ export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView }) {
     </div>
   );
 }
+
+StickyBuyBar.propTypes = {
+  onAddToCart: PropTypes.func.isRequired,
+  onBuyNow: PropTypes.func.isRequired,
+  currentView: PropTypes.string.isRequired
+};

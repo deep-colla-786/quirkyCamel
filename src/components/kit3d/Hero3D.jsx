@@ -1,7 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import * as THREE from 'three';
 import { EPISODES } from '../../data/episodes';
 import { CAMEL_ICON_PNG, LOGO_PNG } from '../../utils/svgGenerators';
+
+// Resolves with the loaded image, or null if it fails to load.
+const loadImg = (src) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
+// Adds a rounded rectangle to the current path (plain rectangle on canvases without roundRect).
+function roundedRect(ctx, x, y, w, h, r) {
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+}
 
 export default function Hero3D({ onSelectEpisode }) {
   const containerRef = useRef(null);
@@ -25,7 +41,7 @@ export default function Hero3D({ onSelectEpisode }) {
         setWebglSupported(false);
         return;
       }
-    } catch (e) {
+    } catch {
       setWebglSupported(false);
       return;
     }
@@ -149,9 +165,7 @@ export default function Hero3D({ onSelectEpisode }) {
 
       // Pill
       x.beginPath();
-      x.roundRect
-        ? x.roundRect(W / 2 - 130, 330, 260, 44, 22)
-        : x.rect(W / 2 - 130, 330, 260, 44);
+      roundedRect(x, W / 2 - 130, 330, 260, 44, 22);
       x.fill();
 
       x.fillStyle = '#14295e';
@@ -235,9 +249,7 @@ export default function Hero3D({ onSelectEpisode }) {
       // Soft center frame
       x.fillStyle = p.soft;
       x.beginPath();
-      x.roundRect
-        ? x.roundRect(36, 116, W - 72, 246, 24)
-        : x.rect(36, 116, W - 72, 246);
+      roundedRect(x, 36, 116, W - 72, 246, 24);
       x.fill();
 
       // Accent sun
@@ -267,7 +279,7 @@ export default function Hero3D({ onSelectEpisode }) {
       x.font = '400 38px "Bagel Fat One", sans-serif';
       const ls = e.lines;
       const y0 = ls.length > 1 ? 444 : 466;
-      ls.forEach((l, i) => x.fillText(l, W / 2, y0 + i * 44));
+      for (let i = 0; i < ls.length; i++) x.fillText(ls[i], W / 2, y0 + i * 44);
 
       x.fillStyle = p.ink;
       x.font = '700 14px Lexend, sans-serif';
@@ -308,13 +320,6 @@ export default function Hero3D({ onSelectEpisode }) {
     });
 
     let disposed = false;
-    const loadImg = (src) =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = src;
-      });
     Promise.all([
       loadImg(CAMEL_ICON_PNG),
       loadImg(LOGO_PNG),
@@ -389,8 +394,11 @@ export default function Hero3D({ onSelectEpisode }) {
     const N = 60;
     const pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
+      // eslint-disable-next-line sonarjs/pseudo-random -- cosmetic only, not security-sensitive
       pos[i * 3] = (Math.random() - 0.5) * 13;
+      // eslint-disable-next-line sonarjs/pseudo-random -- cosmetic only, not security-sensitive
       pos[i * 3 + 1] = (Math.random() - 0.5) * 8 + 0.5;
+      // eslint-disable-next-line sonarjs/pseudo-random -- cosmetic only, not security-sensitive
       pos[i * 3 + 2] = (Math.random() - 0.5) * 6 - 1.5;
     }
     const spG = new THREE.BufferGeometry();
@@ -619,3 +627,7 @@ export default function Hero3D({ onSelectEpisode }) {
     </div>
   );
 }
+
+Hero3D.propTypes = {
+  onSelectEpisode: PropTypes.func.isRequired
+};

@@ -43,7 +43,8 @@ export default function useCart({ catalog, showToast, requireLogin }) {
     if (!isBuyable(product)) return showToast('This product is currently unavailable.');
     if (opts.gift !== undefined) setGiftNote(opts.gift);
     setCart((c) => ({ ...c, [slug]: Math.min(MAX_QTY, (c[slug] || 0) + qty) }));
-    showToast(`${product.name} added to cart${qty > 1 ? ` (×${qty})` : ''}`);
+    const qtyNote = qty > 1 ? ` (×${qty})` : '';
+    showToast(`${product.name} added to cart${qtyNote}`);
     setCartStartStep('cart');
     setIsCartOpen(true);
   };

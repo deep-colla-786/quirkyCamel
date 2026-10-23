@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { EPISODES, RITUAL_STEPS, PERKS } from '../../data/episodes';
 import { sachetSVG, camel } from '../../utils/svgGenerators';
 
@@ -194,3 +195,8 @@ export default function SachetRitual({ currentEpisodeId, onSelectEpisode }) {
     </section>
   );
 }
+
+SachetRitual.propTypes = {
+  currentEpisodeId: PropTypes.string,
+  onSelectEpisode: PropTypes.func.isRequired
+};

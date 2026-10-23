@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { formatINR } from '../../data/episodes';
 
 // Daily revenue, last 30 days. Single series, so no legend: the card title names it.
@@ -6,7 +7,12 @@ const W = 760;
 const H = 240;
 const PAD = { top: 16, right: 12, bottom: 30, left: 52 };
 
-const compact = (n) => (n >= 1e5 ? `${+(n / 1e5).toFixed(1)}L` : n >= 1000 ? `${+(n / 1000).toFixed(1)}K` : String(n));
+// Axis labels in Indian units: 1.5L (lakh), 2.3K.
+function compact(n) {
+  if (n >= 1e5) return `${+(n / 1e5).toFixed(1)}L`;
+  if (n >= 1000) return `${+(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
 const dayLabel = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
 function niceMax(v) {
@@ -117,3 +123,9 @@ export default function RevenueChart({ days }) {
     </figure>
   );
 }
+
+RevenueChart.propTypes = {
+  days: PropTypes.arrayOf(
+    PropTypes.shape({ date: PropTypes.string.isRequired, orders: PropTypes.number.isRequired, revenue: PropTypes.number.isRequired })
+  ).isRequired
+};

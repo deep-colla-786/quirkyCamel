@@ -1,6 +1,7 @@
 import React from 'react';
 import { EPISODES } from '../../data/episodes';
 import { kitSVG } from '../../utils/svgGenerators';
+import { productShape } from '../../lib/propShapes';
 
 // Kit artwork is generated once and reused.
 let kitArtCache = null;
@@ -16,3 +17,7 @@ export default function LineThumb({ product }) {
     </div>
   );
 }
+
+LineThumb.propTypes = {
+  product: productShape.isRequired
+};

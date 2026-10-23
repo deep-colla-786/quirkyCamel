@@ -1,5 +1,7 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import ProductDetail from '../components/product/ProductDetail';
+import { catalogShape } from '../lib/propShapes';
 
 // #product/<slug>: the product detail view, or a not-found / loading message.
 export default function ProductPage({ slug, catalog, catalogLoaded, wishlist, ...detailProps }) {
@@ -32,3 +34,10 @@ export default function ProductPage({ slug, catalog, catalogLoaded, wishlist, ..
     />
   );
 }
+
+ProductPage.propTypes = {
+  slug: PropTypes.string.isRequired,
+  catalog: catalogShape.isRequired,
+  catalogLoaded: PropTypes.bool.isRequired,
+  wishlist: PropTypes.arrayOf(PropTypes.string).isRequired
+};

@@ -1,8 +1,22 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { X, ImagePlus, Trash2 } from 'lucide-react';
 import { adminApi } from '../../lib/api';
+import { productShape } from '../utils/shapes';
 
 const MAX_BYTES = 2 * 1024 * 1024;
+// False for '', 0, negative numbers and anything that isn't a number.
+const isPositive = (v) => Number(v) > 0;
+
+function imageButtonLabel(uploading, hasImage) {
+  if (uploading) return 'Uploading…';
+  return hasImage ? 'Replace image' : 'Upload image';
+}
+
+function saveButtonLabel(busy, isNew) {
+  if (busy) return 'Saving…';
+  return isNew ? 'Add product' : 'Save changes';
+}
 
 // Create (product = null) or edit a product.
 export default function ProductEditor({ product, onClose, onSaved }) {
@@ -45,7 +59,7 @@ export default function ProductEditor({ product, onClose, onSaved }) {
     e.preventDefault();
     setError('');
     if (f.name.trim().length < 2) return setError('Enter a product name.');
-    if (!isFragrance && !(Number(f.price) > 0)) return setError('Enter a selling price.');
+    if (!isFragrance && !isPositive(f.price)) return setError('Enter a selling price.');
     const fields = {
       name: f.name,
       tagline: f.tagline,
@@ -132,7 +146,7 @@ export default function ProductEditor({ product, onClose, onSaved }) {
                 <div className="ad-image-preview">{f.image ? <img src={f.image} alt="" /> : <span className="icon" />}</div>
                 <div className="ad-image-actions">
                   <label className="btn ghost-dark ad-btn-sm">
-                    <ImagePlus size={16} /> {uploading ? 'Uploading…' : f.image ? 'Replace image' : 'Upload image'}
+                    <ImagePlus size={16} /> {imageButtonLabel(uploading, Boolean(f.image))}
                     <input type="file" accept="image/png,image/jpeg,image/webp" onChange={pickImage} hidden disabled={uploading} />
                   </label>
                   {f.image && (
@@ -181,10 +195,16 @@ export default function ProductEditor({ product, onClose, onSaved }) {
             Cancel
           </button>
           <button type="submit" className="btn blue ad-btn-sm" disabled={busy || uploading}>
-            {busy ? 'Saving…' : isNew ? 'Add product' : 'Save changes'}
+            {saveButtonLabel(busy, isNew)}
           </button>
         </footer>
       </form>
     </div>
   );
 }
+
+ProductEditor.propTypes = {
+  product: productShape,
+  onClose: PropTypes.func.isRequired,
+  onSaved: PropTypes.func.isRequired
+};

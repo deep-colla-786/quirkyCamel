@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function Footer({ onNavigate }) {
   return (
@@ -27,3 +28,7 @@ export default function Footer({ onNavigate }) {
     </footer>
   );
 }
+
+Footer.propTypes = {
+  onNavigate: PropTypes.func.isRequired
+};

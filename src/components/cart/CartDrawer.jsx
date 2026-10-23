@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import CartStep from './CartStep';
 import ShippingStep from './ShippingStep';
 import ReviewStep from './ReviewStep';
+import { cartLineShape, productShape, userShape } from '../../lib/propShapes';
+
+// Same rule as /^\S+@\S+\.\S+$/ (no whitespace; an '@' after the first character; a '.'
+// at least one character after it and before the last character), without regex backtracking.
+const isValidEmail = (value) => {
+  if (/\s/.test(value)) return false;
+  const at = value.indexOf('@', 1);
+  const dot = value.lastIndexOf('.', value.length - 2);
+  return at !== -1 && dot >= at + 2;
+};
 
 // Cart drawer with a three-step checkout: cart → delivery address → review & pay.
 export default function CartDrawer({
@@ -80,7 +91,7 @@ export default function CartDrawer({
       setFormError('Please fill out all delivery fields so we can dispatch your kit.');
       return;
     }
-    if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+    if (!isValidEmail(formData.email)) {
       setFormError('Please enter a valid email address for your order invoice.');
       return;
     }
@@ -166,3 +177,19 @@ export default function CartDrawer({
     </>
   );
 }
+
+CartDrawer.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  lines: PropTypes.arrayOf(cartLineShape),
+  total: PropTypes.number,
+  kit: productShape,
+  onSetQty: PropTypes.func.isRequired,
+  onAddKit: PropTypes.func.isRequired,
+  onTriggerRazorpay: PropTypes.func,
+  startStep: PropTypes.oneOf(['cart', 'shipping', 'review']),
+  isPaying: PropTypes.bool,
+  giftNote: PropTypes.string,
+  user: userShape,
+  onRequireLogin: PropTypes.func
+};

@@ -1,7 +1,9 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Zap, ArrowLeft } from 'lucide-react';
 import { formatINR } from '../../data/episodes';
 import LineThumb from './LineThumb';
+import { cartLineShape, customerShape } from '../../lib/propShapes';
 
 // Step 3: order summary and the Razorpay pay button.
 export default function ReviewStep({ lines, itemCount, formData, subtotal, isPaying, onPay, onBack }) {
@@ -69,3 +71,13 @@ export default function ReviewStep({ lines, itemCount, formData, subtotal, isPay
     </div>
   );
 }
+
+ReviewStep.propTypes = {
+  lines: PropTypes.arrayOf(cartLineShape).isRequired,
+  itemCount: PropTypes.number.isRequired,
+  formData: customerShape.isRequired,
+  subtotal: PropTypes.number.isRequired,
+  isPaying: PropTypes.bool.isRequired,
+  onPay: PropTypes.func.isRequired,
+  onBack: PropTypes.func.isRequired
+};

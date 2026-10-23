@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 // Accessible tab strip; each tab is { id, label, body }.
 export default function Tabs({ tabs }) {
@@ -26,3 +27,13 @@ export default function Tabs({ tabs }) {
     </section>
   );
 }
+
+Tabs.propTypes = {
+  tabs: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      body: PropTypes.node
+    })
+  ).isRequired
+};

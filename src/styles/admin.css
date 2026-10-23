@@ -883,3 +883,30 @@
 .ad-link:disabled {
   opacity: 0.6;
 }
+
+/* ---------- Invoice viewer ---------- */
+.ad-invoice-modal {
+  width: min(720px, 100%);
+  height: calc(100vh - 32px);
+}
+.ad-invoice-modal header small {
+  display: block;
+  margin-top: 2px;
+}
+.ad-invoice-frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  border-radius: 0 0 20px 20px;
+  background: #f6f6f2;
+}
+.ad-invoice-msg {
+  padding: 18px;
+}
+.ad-table td .ad-link + .ad-link {
+  margin-top: 4px;
+}
+.ad-table td .ad-link {
+  display: flex;
+  white-space: nowrap;
+}

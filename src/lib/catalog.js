@@ -53,7 +53,11 @@ export function buildCatalog(apiProducts) {
     }
   }
   // Keep a stable order: kit, fragrances by episode, then extras as added.
-  const rank = (p) => (p.type === 'kit' ? 0 : p.type === 'fragrance' ? p.episode.n : 100);
+  const rank = (p) => {
+    if (p.type === 'kit') return 0;
+    if (p.type === 'fragrance') return p.episode.n;
+    return 100;
+  };
   return index(out.sort((a, b) => rank(a) - rank(b)));
 }
 
