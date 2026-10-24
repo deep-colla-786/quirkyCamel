@@ -28,12 +28,16 @@ const slugify = (s) =>
       .replaceAll(/[^a-z0-9]+/g, '-')
   ).slice(0, 60);
 
-export const isBuyable = (p) => p && p.active && (p.type === 'kit' || p.type === 'product') && p.price > 0;
+// Fragrances without a price are sold only inside the kit; any product with a price can be bought.
+export const isBuyable = (p) => p && p.active && p.price > 0;
 
+// Detail fields are null until edited in the dashboard; the storefront then falls back
+// to the built-in copy for the kit and fragrances.
 const toPublic = (p) => ({
   slug: p.slug,
   name: p.name,
   type: p.type,
+  eyebrow: p.eyebrow || '',
   tagline: p.tagline || '',
   description: p.description || '',
   price: p.price,
@@ -41,7 +45,12 @@ const toPublic = (p) => ({
   stock: p.stock ?? null,
   active: !!p.active,
   image: p.image || null,
-  builtIn: !!p.builtIn
+  builtIn: !!p.builtIn,
+  inside: p.inside ?? null,
+  specs: p.specs ?? null,
+  packs: p.packs ?? null,
+  scent: p.scent || '',
+  scentTags: p.scentTags ?? null
 });
 
 export async function listPublicProducts(env) {
@@ -103,20 +112,75 @@ function readImage(value) {
   return image;
 }
 
+const MAX_ROWS = 20;
+const MAX_PACK_QTY = 10; // same cap as one checkout line
+
+// A list of rows edited in the dashboard: each row is cleaned by `readRow`, empty rows
+// are dropped, and `null` (or an empty list) means "use the built-in default".
+function readRows(value, readRow, label) {
+  if (value === null) return null;
+  if (!Array.isArray(value)) throw new HttpError(400, `Invalid ${label}.`);
+  const rows = value.slice(0, MAX_ROWS).map(readRow).filter(Boolean);
+  return rows.length ? rows : null;
+}
+
+const readSpec = (r) => {
+  const row = { label: clip(r?.label, 60), value: clip(r?.value, 200) };
+  return row.label && row.value ? row : null;
+};
+
+const readInsideItem = (r) => {
+  const row = { title: clip(r?.title, 80), detail: clip(r?.detail, 200) };
+  return row.title ? row : null;
+};
+
+const readTag = (t) => clip(t, 30) || null;
+
+function readPack(r) {
+  const qty = Math.round(Number(r?.qty));
+  if (!Number.isFinite(qty) || qty < 1 || qty > MAX_PACK_QTY) {
+    throw new HttpError(400, `Pack quantities must be between 1 and ${MAX_PACK_QTY}.`);
+  }
+  return { qty, label: clip(r?.label, 40) || `${qty} Kit${qty > 1 ? 's' : ''}`, note: clip(r?.note, 60) };
+}
+
+function readPacks(value) {
+  const packs = readRows(value, readPack, 'pack options');
+  if (!packs) return null;
+  const qtys = packs.map((p) => p.qty);
+  if (new Set(qtys).size !== qtys.length) throw new HttpError(400, 'Each pack option needs a different quantity.');
+  return packs.sort((a, b) => a.qty - b.qty);
+}
+
 // Validates the submitted fields; only fields present in `body` are returned.
-// Fragrance prices are never edited (they're sold inside the kit).
+// Pack options are for the kit, and the scent profile for fragrances.
+// [field, applies to this product type?, reader] — a field is read only when it was sent.
+const FIELDS = [
+  ['name', () => true, (v) => readName(v)],
+  ['eyebrow', () => true, (v) => clip(v, 80)],
+  ['tagline', () => true, (v) => clip(v, 160)],
+  ['description', () => true, (v) => clip(v, 3000)],
+  // Fragrances may leave the price empty: then they're sold only inside the kit.
+  ['price', () => true, (v, _price, type) => (type === 'fragrance' && isBlank(v) ? null : readPrice(v))],
+  ['mrp', () => true, (v, price) => (price ? readMrp(v, price) : null)],
+  ['stock', () => true, (v) => readStock(v)],
+  ['active', () => true, (v) => !!v],
+  ['image', () => true, (v) => readImage(v)],
+  ['inside', (t) => t !== 'fragrance', (v) => readRows(v, readInsideItem, 'list of contents')],
+  ['specs', () => true, (v) => readRows(v, readSpec, 'specifications')],
+  ['packs', (t) => t === 'kit', (v) => readPacks(v)],
+  ['scent', (t) => t === 'fragrance', (v) => clip(v, 400)],
+  ['scentTags', (t) => t === 'fragrance', (v) => readRows(v, readTag, 'scent notes')]
+];
+
 function readFields(body, existing) {
   const out = {};
-  const has = (key) => body[key] !== undefined;
-  const priced = (existing?.type || body.type || 'product') !== 'fragrance';
-  if (has('name')) out.name = readName(body.name);
-  if (has('tagline')) out.tagline = clip(body.tagline, 160);
-  if (has('description')) out.description = clip(body.description, 3000);
-  if (priced && has('price')) out.price = readPrice(body.price);
-  if (priced && has('mrp')) out.mrp = readMrp(body.mrp, out.price ?? existing?.price);
-  if (has('stock')) out.stock = readStock(body.stock);
-  if (has('active')) out.active = !!body.active;
-  if (has('image')) out.image = readImage(body.image);
+  const type = existing?.type || body.type || 'product';
+  for (const [key, appliesTo, read] of FIELDS) {
+    if (body[key] === undefined || !appliesTo(type)) continue;
+    // MRP is checked against the new price when both are sent, else the stored one.
+    out[key] = read(body[key], out.price ?? existing?.price, type);
+  }
   return out;
 }
 

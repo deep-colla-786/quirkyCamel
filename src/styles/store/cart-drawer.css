@@ -180,7 +180,7 @@
   letter-spacing: 0.06em;
   color: #3b3f48;
 }
-.form input, .form textarea {
+.form input, .form textarea, .form select {
   border: 0;
   border-radius: 12px;
   padding: 10px 14px;
@@ -188,7 +188,7 @@
   box-shadow: inset 0 0 0 1.5px #d7dae2;
   font-size: 14px;
 }
-.form input:focus, .form textarea:focus {
+.form input:focus, .form textarea:focus, .form select:focus {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--blue);
 }

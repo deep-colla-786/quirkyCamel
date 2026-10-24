@@ -761,6 +761,30 @@
   font-size: 13px;
   color: var(--muted);
 }
+.pd-stock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.pd-stock-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.pd-stock.ok {
+  color: #2d6a00;
+}
+.pd-stock.low {
+  color: #9a5b00;
+}
+.pd-stock.out {
+  color: #b3261e;
+}
 .pd-swatch-row {
   display: flex;
   align-items: center;
@@ -1552,4 +1576,13 @@
 .toast:not(.on) {
   visibility: hidden;
   transition: transform 0.35s, visibility 0s 0.35s;
+}
+.pd-also-kit {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.pd-also-kit a {
+  color: var(--blue);
+  font-weight: 700;
 }

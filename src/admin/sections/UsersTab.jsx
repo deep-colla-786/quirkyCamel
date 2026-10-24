@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, Search } from 'lucide-react';
 import { adminApi } from '../../lib/api';
 import { formatINR } from '../../data/episodes';
-import { fmtDate, fmtDateTime } from '../utils/format';
+import { fmtDate, fmtDateTime, itemsText } from '../utils/format';
 import downloadCsv from '../utils/downloadCsv';
 
 export default function UsersTab() {
@@ -40,8 +40,11 @@ export default function UsersTab() {
               className="btn ghost-dark ad-btn-sm"
               onClick={() =>
                 downloadCsv('users.csv', [
-                  ['Name', 'Email', 'Phone', 'Role', 'City', 'Joined', 'Last login', 'Orders', 'Spent'],
-                  ...users.map((u) => [u.name, u.email, u.phone, u.role, u.city, u.createdAt, u.lastLoginAt, u.orders, u.spent])
+                  ['Name', 'Email', 'Phone', 'Role', 'City', 'Joined', 'Last login', 'Orders', 'Spent', 'Cart', 'Wishlist'],
+                  ...users.map((u) => [
+                    u.name, u.email, u.phone, u.role, u.city, u.createdAt, u.lastLoginAt, u.orders, u.spent,
+                    itemsText(u.cart), u.wishlist.join(', ')
+                  ])
                 ])
               }
             >
@@ -63,6 +66,8 @@ export default function UsersTab() {
                 <th>Last login</th>
                 <th className="num">Orders</th>
                 <th className="num">Spent</th>
+                <th>In cart</th>
+                <th>Wishlist</th>
               </tr>
             </thead>
             <tbody>
@@ -80,6 +85,8 @@ export default function UsersTab() {
                   <td>{fmtDateTime(u.lastLoginAt)}</td>
                   <td className="num">{u.orders}</td>
                   <td className="num">{u.spent ? formatINR(u.spent) : '—'}</td>
+                  <td>{u.cart.length ? itemsText(u.cart) : '—'}</td>
+                  <td>{u.wishlist.length ? u.wishlist.join(', ') : '—'}</td>
                 </tr>
               ))}
             </tbody>

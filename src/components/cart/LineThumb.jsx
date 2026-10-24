@@ -1,6 +1,6 @@
 import React from 'react';
 import { EPISODES } from '../../data/episodes';
-import { kitSVG } from '../../utils/svgGenerators';
+import { kitSVG, sachetSVG } from '../../utils/svgGenerators';
 import { productShape } from '../../lib/propShapes';
 
 // Kit artwork is generated once and reused.
@@ -10,6 +10,9 @@ const kitArt = () => (kitArtCache ??= kitSVG(EPISODES));
 export default function LineThumb({ product }) {
   if (product.type === 'kit') {
     return <div className="thumb" dangerouslySetInnerHTML={{ __html: kitArt() }} />;
+  }
+  if (product.episode) {
+    return <div className="thumb" style={{ background: product.episode.pal.soft }} dangerouslySetInnerHTML={{ __html: sachetSVG(product.episode) }} />;
   }
   return (
     <div className="thumb thumb-img">

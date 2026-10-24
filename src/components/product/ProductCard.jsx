@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { EPISODES, formatINR } from '../../data/episodes';
 import { KIT, productHash } from '../../data/products';
-import { inStock } from '../../lib/catalog';
+import { inStock, soldInKitOnly } from '../../lib/catalog';
 import { productArt } from './productArt';
 import { productShape } from '../../lib/propShapes';
 
@@ -21,13 +21,13 @@ ProductImage.propTypes = {
   className: PropTypes.string
 };
 
-// Corner badge: stock / discount for the kit and extras, the episode number for fragrances.
+// Corner badge: stock / discount for anything sold on its own, else the episode number.
 function cardBadge(product, available) {
-  if (product.type !== 'kit' && product.type !== 'product') return `Episode 0${product.episode.n}`;
+  if (soldInKitOnly(product)) return `Episode 0${product.episode.n}`;
   if (!available) return 'Out of stock';
   if (product.discountPct > 0) return `Save ${product.discountPct}%`;
   if (product.type === 'product') return 'Extra';
-  return null;
+  return product.episode ? `Episode 0${product.episode.n}` : null;
 }
 
 export default function ProductCard({ product, featured = false, saved, onToggleSaved, onAddToCart }) {
@@ -91,7 +91,7 @@ export default function ProductCard({ product, featured = false, saved, onToggle
         )}
 
         <div className="pc-foot">
-          {ep ? (
+          {soldInKitOnly(product) ? (
             <>
               <div className="pc-price pc-price-incl">
                 <small>In the Complete Kit</small>

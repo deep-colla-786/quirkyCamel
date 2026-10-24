@@ -4,6 +4,8 @@ import { Package, LogOut, MapPin, Mail, Phone, MonitorSmartphone } from 'lucide-
 import { ordersApi } from '../lib/api';
 import { formatINR } from '../data/episodes';
 import { userShape } from '../lib/propShapes';
+import DeliveryBadge from '../components/delivery/DeliveryBadge';
+import { arrivalText } from '../components/delivery/deliveryFormat';
 
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -14,7 +16,7 @@ const orderStatusLabel = (o) => {
   return o.status;
 };
 
-export default function AccountPage({ user, onLogin, onLogout, onLogoutAll }) {
+export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, refreshKey = 0 }) {
   const [orders, setOrders] = useState(null);
   const [error, setError] = useState('');
 
@@ -29,7 +31,7 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll }) {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refreshKey]);
 
   if (!user) {
     return (
@@ -87,7 +89,7 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll }) {
               <li>
                 <MapPin size={17} />
                 {user.address
-                  ? `${user.address.addr}, ${user.address.city} ${user.address.pin}`
+                  ? [user.address.addr, user.address.city, user.address.state].filter(Boolean).join(', ') + ` ${user.address.pin}`
                   : 'Your delivery address is saved at your first checkout'}
               </li>
             </ul>
@@ -116,6 +118,15 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll }) {
                         {fmtDate(o.createdAt)} · Ship to {o.shipTo.name}, {o.shipTo.city} {o.shipTo.pin}
                       </small>
                       <code>{o.invoiceNumber || o.razorpayOrderId || `#${o.id.slice(-8).toUpperCase()}`}</code>
+                      {o.status === 'paid' && (
+                        <span className="order-delivery">
+                          <DeliveryBadge shipment={o.delivery} />
+                          <span className="order-eta">{arrivalText(o.delivery)}</span>
+                          <a className="order-track" href={`#track/${o.id}`}>
+                            Track order →
+                          </a>
+                        </span>
+                      )}
                     </div>
                     <div className="order-right">
                       <b>{formatINR(o.amount)}</b>
@@ -138,5 +149,6 @@ AccountPage.propTypes = {
   user: userShape,
   onLogin: PropTypes.func.isRequired,
   onLogout: PropTypes.func.isRequired,
-  onLogoutAll: PropTypes.func.isRequired
+  onLogoutAll: PropTypes.func.isRequired,
+  refreshKey: PropTypes.number
 };

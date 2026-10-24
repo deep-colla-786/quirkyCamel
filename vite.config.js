@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import { fileURLToPath } from 'node:url'
 import { apiMiddleware } from './server/api.js'
+import { loadEnv as loadServerEnv } from './server/env.js'
 
 // Serves /api/* (auth, Razorpay, orders) during `npm run dev` and `npm run preview`.
 // Secrets come from .env (no VITE_ prefix, so they never reach the browser bundle).
@@ -31,7 +32,9 @@ function api(env) {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env }
+  // .env values come from the server's own loader, which keeps characters like $ and #
+  // exactly as written (Vite's loader expands $NAME inside values).
+  const env = { ...loadEnv(mode, process.cwd(), ''), ...loadServerEnv(process.cwd()) }
   return {
     plugins: [react(), api(env)],
     build: {

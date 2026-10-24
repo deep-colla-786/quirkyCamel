@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import StickyBuyBar from './components/layout/StickyBuyBar';
 import Toast from './components/layout/Toast';
+import UpdateBanner from './components/layout/UpdateBanner';
 import CartDrawer from './components/cart/CartDrawer';
 import RazorpayModal from './components/checkout/RazorpayModal';
 import OrderSuccessModal from './components/checkout/OrderSuccessModal';
@@ -12,6 +13,7 @@ import EpisodePage from './pages/EpisodePage';
 import AccountPage from './pages/AccountPage';
 import ShopPage from './pages/ShopPage';
 import ProductPage from './pages/ProductPage';
+import TrackingPage from './pages/TrackingPage';
 import useToast from './hooks/useToast';
 import useCatalog from './hooks/useCatalog';
 import useCart from './hooks/useCart';
@@ -19,6 +21,8 @@ import useSavedItems from './hooks/useSavedItems';
 import useAuth from './hooks/useAuth';
 import useHashRouter from './hooks/useHashRouter';
 import useCheckout from './hooks/useCheckout';
+import useAccountSync from './hooks/useAccountSync';
+import useLiveUpdates from './hooks/useLiveUpdates';
 import { authApi } from './lib/api';
 import { EPISODES, EPISODES_BY_ID, PRICE } from './data/episodes';
 import { KIT_SLUG, productHash } from './data/products';
@@ -28,8 +32,21 @@ export default function App() {
   const { catalog, catalogLoaded, loadCatalog } = useCatalog();
   const { user, setUser, authChecked, auth, openAuth, closeAuth, requireLogin, handleAuthed } = useAuth({ showToast });
   const cart = useCart({ catalog, showToast, requireLogin });
-  const { wishlist, toggleWishlist, recentlyViewed, markViewed } = useSavedItems({ catalog, showToast });
-  const { currentView, productSlug, shopSaved, activeEpisodeId, goTo, handleNavigate } = useHashRouter({
+  const { wishlist, setWishlist, toggleWishlist, recentlyViewed, markViewed } = useSavedItems({ catalog, showToast });
+  const account = useAccountSync({
+    user,
+    authChecked,
+    cart: cart.cart,
+    setCart: cart.setCart,
+    wishlist,
+    setWishlist,
+    showToast
+  });
+  // Bumped on every live delivery update, so order and tracking pages re-fetch.
+  const [shipmentTick, setShipmentTick] = useState(0);
+  const onShipment = useCallback(() => setShipmentTick((n) => n + 1), []);
+  useLiveUpdates({ userId: user?.id, onCatalog: loadCatalog, onSaved: account.reload, onShipment });
+  const { currentView, productSlug, shopSaved, activeEpisodeId, trackOrderId, goTo, handleNavigate } = useHashRouter({
     onViewProduct: markViewed
   });
   const checkout = useCheckout({
@@ -38,6 +55,7 @@ export default function App() {
     showToast,
     setCart: cart.setCart,
     setIsCartOpen: cart.setIsCartOpen,
+    openCartAt: cart.openCartAt,
     loadCatalog
   });
 
@@ -49,11 +67,13 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    await account.flush();
     await authApi.logout();
     signedOut('You have been logged out.');
   };
 
   const handleLogoutAll = async () => {
+    await account.flush();
     const res = await authApi.logoutAll();
     if (!res.ok) return showToast(res.data.error || 'Could not log out of your other devices.');
     signedOut('Logged out on all your devices.');
@@ -104,7 +124,12 @@ export default function App() {
             onLogin={(mode) => openAuth(mode)}
             onLogout={handleLogout}
             onLogoutAll={handleLogoutAll}
+            refreshKey={shipmentTick}
           />
+        )}
+
+        {currentView === 'track' && (
+          <TrackingPage orderId={trackOrderId} user={user} authChecked={authChecked} onLogin={() => openAuth('login')} refreshKey={shipmentTick} />
         )}
 
         {currentView === 'shop' && (
@@ -146,6 +171,7 @@ export default function App() {
         onTriggerRazorpay={checkout.handleCheckout}
         startStep={cart.cartStartStep}
         isPaying={checkout.isPaying}
+        serverError={checkout.checkoutError}
         giftNote={cart.giftNote}
         user={user}
         onRequireLogin={(action) => requireLogin(action)}
@@ -185,6 +211,7 @@ export default function App() {
       />
 
       <Toast message={toastMessage} />
+      <UpdateBanner />
     </div>
   );
 }

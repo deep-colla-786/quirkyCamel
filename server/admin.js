@@ -119,7 +119,9 @@ export async function listUsers(env, q = '') {
       createdAt: u.createdAt,
       lastLoginAt: u.lastLoginAt || null,
       orders: u.stats[0]?.count || 0,
-      spent: (u.stats[0]?.spent || 0) / 100
+      spent: (u.stats[0]?.spent || 0) / 100,
+      cart: (Array.isArray(u.cart) ? u.cart : []).map((it) => ({ name: it.name, qty: it.qty })),
+      wishlist: (Array.isArray(u.wishlist) ? u.wishlist : []).map((it) => it.name)
     }))
   };
 }
@@ -164,6 +166,7 @@ export async function listOrders(env) {
       razorpayOrderId: o.razorpayOrderId || null,
       paymentId: o.razorpayPaymentId || null,
       emails: o.emails || null,
+      delivery: o.delivery || null,
       createdAt: o.createdAt
     }))
   };

@@ -38,7 +38,8 @@ export async function startRazorpayCheckout({ items, customer }) {
   const order = await postJson('/razorpay/order', { items, customer });
   if (order.status === 401) return { status: 'auth' };
   if (order.data.configured === false) return { status: 'demo' };
-  if (!order.ok) return { status: 'failed', error: order.data.error || 'Could not start payment.' };
+  // 400 = the server rejected the delivery details (e.g. a missing field): fix them, not the payment.
+  if (!order.ok) return { status: 'failed', invalid: order.status === 400, error: order.data.error || 'Could not start payment.' };
 
   if (!(await loadRazorpayScript())) {
     return { status: 'failed', error: 'Could not load Razorpay. Check your connection and try again.' };
@@ -72,7 +73,14 @@ export async function startRazorpayCheckout({ items, customer }) {
       handler: async (response) => {
         const v = await postJson('/razorpay/verify', response);
         if (v.ok && v.data.verified) {
-          done({ status: 'paid', orderId, paymentId: response.razorpay_payment_id, method: 'Razorpay', amount: amount / 100 });
+          done({
+            status: 'paid',
+            orderId,
+            paymentId: response.razorpay_payment_id,
+            method: 'Razorpay',
+            amount: amount / 100,
+            trackId: v.data.order?.id
+          });
         } else {
           done({
             status: 'failed',

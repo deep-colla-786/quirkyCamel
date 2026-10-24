@@ -12,6 +12,10 @@ import crypto from 'node:crypto';
 import { getDb } from './db.js';
 import { HttpError } from './http.js';
 import { saveCustomerDetails } from './auth.js';
+import { removePurchased } from './savedItems.js';
+import { catalogChanged, savedItemsChanged } from './events.js';
+import { createShipment } from './delivery/shipments.js';
+import { INDIAN_STATES } from '../src/data/states.js';
 import { isBuyable } from './products.js';
 import { sendOrderEmails, invoiceNumber } from './mailer.js';
 
@@ -68,12 +72,14 @@ async function validateCheckout(env, user, body) {
     phone: clip(c.phone, 20),
     addr: clip(c.addr),
     city: clip(c.city, 80),
+    state: clip(c.state, 60),
     pin: clip(c.pin, 6),
     gift: c.isgift ? clip(c.gift, 200) : ''
   };
   if (!customer.name || !customer.addr || !customer.city || !/^\d{6}$/.test(customer.pin)) {
     throw new HttpError(400, 'Delivery details are incomplete.');
   }
+  if (!INDIAN_STATES.includes(customer.state)) throw new HttpError(400, 'Please choose the delivery state.');
   const amount = items.reduce((sum, it) => sum + it.price * it.qty, 0) * 100; // paise
   return { items, customer, amount };
 }
@@ -89,8 +95,12 @@ async function takeStock(db, items) {
 
 async function afterPaid(env, db, order, user) {
   await takeStock(db, order.items);
-  // Don't make the shopper wait for SMTP; failures are recorded on the order.
+  await removePurchased(db, order.userId, order.items);
+  catalogChanged(); // stock went down
+  savedItemsChanged(order.userId); // the buyer's other open pages drop the bought items
+  // Don't make the shopper wait for SMTP or the courier; results are recorded on the order.
   sendOrderEmails(env, order, user).catch((err) => console.error('[mail]', err));
+  createShipment(env, order).catch((err) => console.error('[delivery]', err));
 }
 
 const publicOrder = (o) => ({
@@ -104,6 +114,7 @@ const publicOrder = (o) => ({
   amount: o.amount / 100,
   currency: o.currency,
   shipTo: { name: o.customer.name, city: o.customer.city, pin: o.customer.pin },
+  delivery: o.delivery || null,
   createdAt: o.createdAt,
   paidAt: o.paidAt || null
 });

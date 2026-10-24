@@ -202,7 +202,7 @@ export async function saveCustomerDetails(env, userId, c) {
   const update = { updatedAt: new Date() };
   if (c.phone) update.phone = clean(c.phone, 20);
   if (c.addr && c.city && c.pin) {
-    update.address = { addr: clean(c.addr), city: clean(c.city, 80), pin: clean(c.pin, 6) };
+    update.address = { addr: clean(c.addr), city: clean(c.city, 80), state: clean(c.state, 60), pin: clean(c.pin, 6) };
   }
   await db.collection('users').updateOne({ _id: new ObjectId(String(userId)) }, { $set: update });
 }

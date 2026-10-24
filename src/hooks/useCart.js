@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import { readStore, writeStore } from '../lib/storage';
 import { KIT_SLUG, MAX_QTY } from '../data/products';
-import { isBuyable } from '../lib/catalog';
+import { isBuyable, inStock } from '../lib/catalog';
+
+// Most of one product a cart may hold: the per-line cap, or less when stock is limited.
+const maxFor = (product) => (product.stock === null || product.stock === undefined ? MAX_QTY : Math.min(MAX_QTY, product.stock));
+
+// Why a product can't be added right now, or '' if it can.
+function unavailableReason(product) {
+  if (!isBuyable(product)) return 'This product is currently unavailable.';
+  return inStock(product) ? '' : `${product.name} is out of stock right now.`;
+}
 
 // Cart contents (persisted per browser) and the cart drawer.
 export default function useCart({ catalog, showToast, requireLogin }) {
@@ -37,12 +46,19 @@ export default function useCart({ catalog, showToast, requireLogin }) {
     setIsCartOpen(true);
   };
 
+  // Opens the drawer at a given checkout step ('cart' | 'shipping' | 'review').
+  const openCartAt = (step) => {
+    setCartStartStep(step);
+    setIsCartOpen(true);
+  };
+
   const handleAddToCart = (qty = 1, opts = {}) => {
     const slug = opts.slug || KIT_SLUG;
     const product = catalog.bySlug[slug];
-    if (!isBuyable(product)) return showToast('This product is currently unavailable.');
+    const problem = unavailableReason(product);
+    if (problem) return showToast(problem);
     if (opts.gift !== undefined) setGiftNote(opts.gift);
-    setCart((c) => ({ ...c, [slug]: Math.min(MAX_QTY, (c[slug] || 0) + qty) }));
+    setCart((c) => ({ ...c, [slug]: Math.min(maxFor(product), (c[slug] || 0) + qty) }));
     const qtyNote = qty > 1 ? ` (×${qty})` : '';
     showToast(`${product.name} added to cart${qtyNote}`);
     setCartStartStep('cart');
@@ -52,9 +68,11 @@ export default function useCart({ catalog, showToast, requireLogin }) {
   // 'Buy now' goes straight to the delivery step of the cart drawer.
   const handleInstantBuyNow = (qty = 1, opts = {}) => {
     const slug = opts.slug || KIT_SLUG;
-    if (!isBuyable(catalog.bySlug[slug])) return showToast('This product is currently unavailable.');
+    const product = catalog.bySlug[slug];
+    const problem = unavailableReason(product);
+    if (problem) return showToast(problem);
     if (opts.gift !== undefined) setGiftNote(opts.gift);
-    setCart((c) => ({ ...c, [slug]: Math.max(c[slug] || 0, Math.min(MAX_QTY, qty)) }));
+    setCart((c) => ({ ...c, [slug]: Math.max(c[slug] || 0, Math.min(maxFor(product), qty)) }));
     requireLogin(() => {
       setCartStartStep('shipping');
       setIsCartOpen(true);
@@ -62,6 +80,7 @@ export default function useCart({ catalog, showToast, requireLogin }) {
   };
 
   return {
+    cart,
     setCart,
     cartLines,
     cartCount,
@@ -70,6 +89,7 @@ export default function useCart({ catalog, showToast, requireLogin }) {
     isCartOpen,
     setIsCartOpen,
     openCart,
+    openCartAt,
     cartStartStep,
     giftNote,
     handleAddToCart,

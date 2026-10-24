@@ -21,5 +21,5 @@ export default function useSavedItems({ catalog, showToast }) {
     []
   );
 
-  return { wishlist, toggleWishlist, recentlyViewed, markViewed };
+  return { wishlist, setWishlist, toggleWishlist, recentlyViewed, markViewed };
 }

@@ -26,6 +26,7 @@ export default function CartDrawer({
   onAddKit,
   onTriggerRazorpay,
   startStep = 'cart',
+  serverError = '',
   isPaying = false,
   giftNote = null,
   user = null,
@@ -38,6 +39,7 @@ export default function CartDrawer({
     phone: '',
     addr: '',
     city: '',
+    state: '',
     pin: '',
     isgift: false,
     gift: ''
@@ -59,9 +61,15 @@ export default function CartDrawer({
       phone: d.phone || user.phone || '',
       addr: d.addr || user.address?.addr || '',
       city: d.city || user.address?.city || '',
+      state: d.state || user.address?.state || '',
       pin: d.pin || user.address?.pin || ''
     }));
   }, [user]);
+
+  // The server refused the delivery details: show why on the delivery form.
+  useEffect(() => {
+    if (serverError) setFormError(serverError);
+  }, [serverError]);
 
   // Each time the drawer opens, start at the requested step ('Buy now' skips the cart).
   useEffect(() => {
@@ -84,7 +92,7 @@ export default function CartDrawer({
 
   const handleShippingSubmit = (e) => {
     e.preventDefault();
-    const required = ['name', 'email', 'phone', 'addr', 'city', 'pin'];
+    const required = ['name', 'email', 'phone', 'addr', 'city', 'state', 'pin'];
     const missing = required.filter((k) => !String(formData[k] || '').trim());
 
     if (missing.length > 0) {
@@ -188,6 +196,7 @@ CartDrawer.propTypes = {
   onAddKit: PropTypes.func.isRequired,
   onTriggerRazorpay: PropTypes.func,
   startStep: PropTypes.oneOf(['cart', 'shipping', 'review']),
+  serverError: PropTypes.string,
   isPaying: PropTypes.bool,
   giftNote: PropTypes.string,
   user: userShape,

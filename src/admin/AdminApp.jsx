@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi, SESSION_ENDED_EVENT } from '../lib/api';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
+import UpdateBanner from '../components/layout/UpdateBanner';
 
 const ENDED_NOTICE = 'Your admin session has ended (30 minutes without activity, or it was ended elsewhere). Please sign in again.';
 
@@ -58,7 +59,14 @@ export default function AdminApp() {
     setNotice('');
   }, []);
 
-  if (!checked) return <div className="ad-gate">Loading…</div>;
-  if (!user) return <AdminLogin key={notice} notice={notice} onLoggedIn={login} />;
-  return <AdminDashboard user={user} onLogout={logout} />;
+  let page;
+  if (!checked) page = <div className="ad-gate">Loading…</div>;
+  else if (user) page = <AdminDashboard user={user} onLogout={logout} />;
+  else page = <AdminLogin key={notice} notice={notice} onLoggedIn={login} />;
+  return (
+    <>
+      {page}
+      <UpdateBanner />
+    </>
+  );
 }

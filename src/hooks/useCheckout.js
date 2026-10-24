@@ -3,16 +3,25 @@ import { authApi, ordersApi } from '../lib/api';
 import { startRazorpayCheckout } from '../lib/razorpay';
 
 // Payment flow: real Razorpay checkout, the demo checkout (placeholder keys) and the confirmation.
-export default function useCheckout({ setUser, requireLogin, showToast, setCart, setIsCartOpen, loadCatalog }) {
+export default function useCheckout({ setUser, requireLogin, showToast, setCart, setIsCartOpen, openCartAt, loadCatalog }) {
   const [isPaying, setIsPaying] = useState(false);
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [pendingCheckout, setPendingCheckout] = useState(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [confirmedPayment, setConfirmedPayment] = useState(null);
   const [confirmedCustomer, setConfirmedCustomer] = useState(null);
+  // The server rejected the delivery details: shown on the delivery form, which reopens.
+  const [checkoutError, setCheckoutError] = useState('');
+
+  const backToDelivery = (message) => {
+    setIsRazorpayOpen(false);
+    setCheckoutError(message);
+    openCartAt('shipping');
+  };
 
   const handleCheckout = async (checkoutData) => {
     setPendingCheckout(checkoutData);
+    setCheckoutError('');
     setIsPaying(true);
     const result = await startRazorpayCheckout({
       items: checkoutData.items,
@@ -33,6 +42,8 @@ export default function useCheckout({ setUser, requireLogin, showToast, setCart,
       // Dummy keys in .env: fall back to the built-in demo checkout.
       setIsCartOpen(false);
       setIsRazorpayOpen(true);
+    } else if (result.status === 'failed' && result.invalid) {
+      backToDelivery(result.error);
     } else if (result.status === 'failed') {
       handlePaymentFailure(result.error);
     } else {
@@ -60,6 +71,8 @@ export default function useCheckout({ setUser, requireLogin, showToast, setCart,
       if (res.status === 401) {
         setUser(null);
         requireLogin(() => setIsRazorpayOpen(true), 'Your session expired. Log in again to finish your order.');
+      } else if (res.status === 400) {
+        backToDelivery(res.data.error || 'Please check your delivery details.');
       } else showToast(res.data.error || 'Could not save your order.');
       return;
     }
@@ -67,7 +80,8 @@ export default function useCheckout({ setUser, requireLogin, showToast, setCart,
     handlePaymentSuccess({
       ...paymentResult,
       orderId: order.invoiceNumber,
-      paymentId: 'Demo payment (no charge)'
+      paymentId: 'Demo payment (no charge)',
+      trackId: order.id
     });
   };
 
@@ -81,6 +95,7 @@ export default function useCheckout({ setUser, requireLogin, showToast, setCart,
     isRazorpayOpen,
     closeRazorpay: () => setIsRazorpayOpen(false),
     pendingCheckout,
+    checkoutError,
     isSuccessModalOpen,
     closeSuccess: () => setIsSuccessModalOpen(false),
     confirmedPayment,

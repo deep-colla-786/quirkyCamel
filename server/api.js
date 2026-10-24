@@ -8,12 +8,21 @@
 //   POST   /api/auth/login                  { email, password }
 //   POST   /api/auth/logout
 //   POST   /api/auth/logout-all             (login) end the user's store sessions on every device
+//   GET    /api/account/saved               (login) the user's saved cart + wishlist
+//   POST   /api/account/saved/merge         (login) { cart, wishlist } add guest picks on login
+//   PUT    /api/account/cart/:slug          (login) { qty } set one cart line (0 removes it)
+//   PUT    /api/account/wishlist/:slug      (login) save an item
+//   DELETE /api/account/wishlist/:slug      (login) unsave an item
+//   GET    /api/events                      live "catalog" / "saved" change events (SSE)
 //   GET    /api/products                    active products (public)
+//   GET    /api/version                     changes whenever the server restarts with new code
 //   GET    /api/razorpay/config
 //   POST   /api/razorpay/order              (login) { items: [{ slug, qty }], customer }
 //   POST   /api/razorpay/verify             (login) Razorpay handler response
 //   POST   /api/orders/demo                 (login, only while Razorpay keys are placeholders)
-//   GET    /api/orders                      (login) the user's orders
+//   GET    /api/orders                      (login) the user's orders (with a delivery summary)
+//   GET    /api/orders/:id/tracking         (login) full delivery tracking for one of the user's orders
+//   POST   /api/delivery/updates            Shiprocket tracking webhook (x-api-key = SHIPROCKET_WEBHOOK_TOKEN)
 //
 //   GET    /api/admin/auth/me               current admin or null
 //   POST   /api/admin/auth/login            { email, password } (admin accounts only)
@@ -26,6 +35,11 @@
 //   DELETE /api/admin/users/:id/sessions    (admin) end every session of a user
 //   GET    /api/admin/orders                (admin)
 //   GET    /api/admin/orders/:id/invoice    (admin) { invoiceNumber, html }
+//   GET    /api/admin/deliveries            (admin) every shipment with its status
+//   GET    /api/admin/deliveries/:id        (admin) full tracking for an order's shipment
+//   POST   /api/admin/deliveries/:id/refresh (admin) fetch tracking now (demo: next event)
+//   POST   /api/admin/deliveries/:id/retry  (admin) book a shipment that is missing or failed
+//   GET    /api/admin/delivery-status       (admin) Shiprocket or demo, pickup location, webhook
 //   POST   /api/admin/orders/:id/resend     (admin) re-send the invoice + admin alert
 //   GET    /api/admin/mail-status           (admin) is SMTP configured?
 //   POST   /api/admin/test-email            (admin) { to? } send a test email
@@ -50,6 +64,19 @@ import {
   publicUser
 } from './auth.js';
 import { endSessionById, endUserSessions } from './sessions.js';
+import { getSaved, setCartQty, setWishlisted, mergeSaved } from './savedItems.js';
+import { openStream, catalogChanged, savedItemsChanged } from './events.js';
+import {
+  handleWebhook,
+  trackingForUser,
+  listShipments,
+  shipmentDetail,
+  refreshShipment,
+  retryShipment,
+  deliveryStatus,
+  startDeliverySync
+} from './delivery/shipments.js';
+import { WEBHOOK_PATH } from './delivery/config.js';
 import { razorpayConfig, createOrder, verifyPayment, createDemoOrder, listOrders } from './razorpay.js';
 import {
   listPublicProducts,
@@ -64,6 +91,9 @@ import {
 import * as admin from './admin.js';
 import { mailStatus, sendTestEmail, resendOrderEmails, orderInvoice } from './mailer.js';
 
+// Open pages compare this to notice that the site was updated while they were open.
+const SERVER_VERSION = Date.now().toString(36);
+
 const DB_DOWN_RE = /ECONNREFUSED|Server selection timed out|MongoServerSelectionError/i;
 
 // Turns '/api/admin/orders/:id/invoice' into a regex plus its parameter names.
@@ -77,6 +107,14 @@ function compileRoute([method, pattern, handler]) {
 }
 
 function storeRoutes(env) {
+  // A change to the signed-in user's cart/wishlist; their other open pages are told to reload.
+  const savedChange = (handler) => async (req, res, params) => {
+    const user = await requireUser(req, res, env);
+    const result = await handler(user, req, params);
+    savedItemsChanged(user._id, clientIdOf(req));
+    return result;
+  };
+
   return [
     ['GET', '/api/auth/me', async (req, res) => {
       const user = await getStoreUser(req, res, env);
@@ -94,7 +132,25 @@ function storeRoutes(env) {
       return { ended: await logoutEverywhere(req, res, env) };
     }],
 
+    ['GET', '/api/account/saved', async (req, res) => getSaved(env, await requireUser(req, res, env))],
+    ['POST', '/api/account/saved/merge', savedChange(async (user, req) => mergeSaved(env, user, await readJson(req)))],
+    ['PUT', '/api/account/cart/:slug', savedChange(async (user, req, params) => {
+      const { qty } = await readJson(req);
+      await setCartQty(env, user, params.slug, qty);
+      return { ok: true };
+    })],
+    ['PUT', '/api/account/wishlist/:slug', savedChange(async (user, req, params) => {
+      await readJson(req);
+      await setWishlisted(env, user, params.slug, true);
+      return { ok: true };
+    })],
+    ['DELETE', '/api/account/wishlist/:slug', savedChange(async (user, req, params) => {
+      await setWishlisted(env, user, params.slug, false);
+      return { ok: true };
+    })],
+
     ['GET', '/api/products', () => listPublicProducts(env)],
+    ['GET', '/api/version', () => ({ version: SERVER_VERSION })],
 
     ['GET', '/api/razorpay/config', async () => {
       const { keyId, configured } = razorpayConfig(env);
@@ -103,9 +159,20 @@ function storeRoutes(env) {
     ['POST', '/api/razorpay/order', async (req, res) => createOrder(env, await requireUser(req, res, env), await readJson(req))],
     ['POST', '/api/razorpay/verify', async (req, res) => verifyPayment(env, await requireUser(req, res, env), await readJson(req))],
     ['POST', '/api/orders/demo', async (req, res) => createDemoOrder(env, await requireUser(req, res, env), await readJson(req))],
-    ['GET', '/api/orders', async (req, res) => listOrders(env, await requireUser(req, res, env))]
+    ['GET', '/api/orders', async (req, res) => listOrders(env, await requireUser(req, res, env))],
+    ['GET', '/api/orders/:id/tracking', async (req, res, params) => trackingForUser(env, await requireUser(req, res, env), params.id)],
+    ['POST', WEBHOOK_PATH, async (req) => handleWebhook(env, req, await readJson(req, { limit: 5e5 }))]
   ];
 }
+
+// Runs a product change, then tells every open store page to reload the catalog.
+const catalogChange = (handler) => async (ctx) => {
+  const result = await handler(ctx);
+  catalogChanged();
+  return result;
+};
+
+const clientIdOf = (req) => String(req.headers['x-client-id'] || '').slice(0, 64);
 
 function adminRoutes(env) {
   // Wraps a handler so it only runs for a signed-in admin; it receives the auth context.
@@ -140,6 +207,11 @@ function adminRoutes(env) {
     })],
     ['GET', '/api/admin/orders', guarded(() => admin.listOrders(env))],
     ['GET', '/api/admin/orders/:id/invoice', guarded(({ params }) => orderInvoice(env, params.id))],
+    ['GET', '/api/admin/deliveries', guarded(() => listShipments(env))],
+    ['GET', '/api/admin/deliveries/:id', guarded(({ params }) => shipmentDetail(env, params.id))],
+    ['POST', '/api/admin/deliveries/:id/refresh', guarded(async ({ req, params }) => (await readJson(req), refreshShipment(env, params.id)))],
+    ['POST', '/api/admin/deliveries/:id/retry', guarded(async ({ req, params }) => (await readJson(req), retryShipment(env, params.id)))],
+    ['GET', '/api/admin/delivery-status', guarded(() => deliveryStatus(env))],
     ['POST', '/api/admin/orders/:id/resend', guarded(async ({ req, params }) => {
       await readJson(req);
       return { emails: await resendOrderEmails(env, params.id) };
@@ -150,9 +222,9 @@ function adminRoutes(env) {
       return sendTestEmail(env, String(body.to || auth.user.email).trim().slice(0, 254));
     })],
     ['GET', '/api/admin/products', guarded(() => listAllProducts(env))],
-    ['POST', '/api/admin/products', guarded(async ({ req }) => createProduct(env, await readJson(req)))],
-    ['PUT', '/api/admin/products/:slug', guarded(async ({ req, params }) => updateProduct(env, params.slug, await readJson(req)))],
-    ['DELETE', '/api/admin/products/:slug', guarded(({ params }) => deleteProduct(env, params.slug))],
+    ['POST', '/api/admin/products', guarded(catalogChange(async ({ req }) => createProduct(env, await readJson(req))))],
+    ['PUT', '/api/admin/products/:slug', guarded(catalogChange(async ({ req, params }) => updateProduct(env, params.slug, await readJson(req))))],
+    ['DELETE', '/api/admin/products/:slug', guarded(catalogChange(({ params }) => deleteProduct(env, params.slug)))],
     ['POST', '/api/admin/upload', guarded(async ({ req }) =>
       uploadImage(await readJson(req, { limit: Math.ceil(MAX_UPLOAD_BYTES * 1.4) + 1000 }))
     )]
@@ -169,12 +241,24 @@ function sendError(res, err) {
 }
 
 export function apiMiddleware(env) {
+  startDeliverySync(env);
+  // Live updates; signed-in shoppers also get their own cart/wishlist events.
+  const streamEvents = async (req, res, qs) => {
+    try {
+      const user = await getStoreUser(req, null, env);
+      openStream(req, res, { userId: user?._id, clientId: new URLSearchParams(qs).get('client') || '' });
+    } catch (err) {
+      sendError(res, err);
+    }
+  };
+
   const routes = [...storeRoutes(env), ...adminRoutes(env)].map(compileRoute);
 
   return async (req, res, next) => {
     const [path, qs = ''] = (req.url || '').split('?');
     if (req.method === 'GET' && path.startsWith('/uploads/') && (await serveUpload(req, res))) return;
     if (!path.startsWith('/api/')) return next();
+    if (req.method === 'GET' && path === '/api/events') return streamEvents(req, res, qs);
 
     let match = null;
     const route = routes.find((r) => r.method === req.method && (match = r.re.exec(path)));

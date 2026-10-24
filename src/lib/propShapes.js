@@ -74,6 +74,7 @@ export const cartLineShape = PropTypes.shape({
 export const addressShape = PropTypes.shape({
   addr: PropTypes.string,
   city: PropTypes.string,
+  state: PropTypes.string,
   pin: PropTypes.string
 });
 
@@ -93,6 +94,7 @@ export const customerShape = PropTypes.shape({
   phone: PropTypes.string,
   addr: PropTypes.string,
   city: PropTypes.string,
+  state: PropTypes.string,
   pin: PropTypes.string,
   isgift: PropTypes.bool,
   gift: PropTypes.string

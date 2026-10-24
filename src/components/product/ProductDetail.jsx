@@ -4,9 +4,10 @@ import PropTypes from 'prop-types';
 import { Heart, Share2 } from 'lucide-react';
 import { EPISODES, formatINR } from '../../data/episodes';
 import { REVIEWS } from '../../data/products';
-import { inStock } from '../../lib/catalog';
+import { inStock, soldInKitOnly } from '../../lib/catalog';
 import Gallery from './detail/Gallery';
 import BuyPanel from './detail/BuyPanel';
+import StockStatus from './detail/StockStatus';
 import Tabs from './detail/Tabs';
 import Reviews from './detail/Reviews';
 import RelatedProducts from './detail/RelatedProducts';
@@ -33,9 +34,9 @@ function relatedFor(kind, product, catalog) {
   return [catalog.kit, ...catalog.fragrances.filter((f) => f.slug !== product.slug)];
 }
 
-function priceNote(isKit, ep, target) {
+function priceNote(isKit, buysKit, target) {
   if (isKit) return `Inclusive of all taxes · about ${formatINR(Math.round(target.price / 6))} per fragrance`;
-  if (ep) return 'Price of The Complete Kit · inclusive of all taxes';
+  if (buysKit) return 'Price of The Complete Kit · inclusive of all taxes';
   return 'Inclusive of all taxes';
 }
 
@@ -91,11 +92,11 @@ export default function ProductDetail({
   showToast
 }) {
   const isKit = product.type === 'kit';
-  const isExtra = product.type === 'product';
   const ep = product.episode;
   const KIT = catalog.kit; // null if the kit is hidden in the admin panel
   // What the buttons actually buy: the product itself, or the kit for a fragrance page.
-  const target = ep ? KIT : product;
+  const target = soldInKitOnly(product) ? KIT : product;
+  const buysKit = target !== product;
   const available = !!target && inStock(target);
   const reviews = REVIEWS[product.slug] || [];
   const kind = productKind(product);
@@ -115,8 +116,7 @@ export default function ProductDetail({
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const tabs = useMemo(() => buildTabs(product), [isKit, isExtra, ep]);
+  const tabs = useMemo(() => buildTabs(product), [product]);
 
   const related = relatedFor(kind, product, catalog).filter(Boolean);
   const recent = recentlyViewed
@@ -172,7 +172,8 @@ export default function ProductDetail({
                   {target.discountPct > 0 && <span className="pd-save">Save {target.discountPct}%</span>}
                   {!available && <span className="pd-out">Out of stock</span>}
                 </div>
-                <p className="pd-price-note">{priceNote(isKit, ep, target)}</p>
+                <p className="pd-price-note">{priceNote(isKit, buysKit, target)}</p>
+                <StockStatus stock={target.stock} kitName={buysKit ? target.name : undefined} />
               </>
             )}
 

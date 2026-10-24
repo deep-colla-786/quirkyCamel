@@ -34,7 +34,7 @@ export default function ReviewStep({ lines, itemCount, formData, subtotal, isPay
         <br />
         {formData.name} · {formData.phone}
         <br />
-        {formData.addr}, {formData.city} - {formData.pin}
+        {formData.addr}, {formData.city}, {formData.state} - {formData.pin}
         {formData.isgift && formData.gift && (
           <>
             <br />

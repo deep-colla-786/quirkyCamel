@@ -7,7 +7,9 @@ import { api } from './api';
 
 const discount = (price, mrp) => (mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0);
 
-export const isBuyable = (p) => !!p && (p.type === 'kit' || p.type === 'product') && p.price > 0;
+// Any product with a price can be bought; a fragrance without one is sold only in the kit.
+export const isBuyable = (p) => !!p && p.price > 0;
+export const soldInKitOnly = (p) => p.type === 'fragrance' && !isBuyable(p);
 export const inStock = (p) => !!p && (p.stock === null || p.stock === undefined || p.stock > 0);
 
 function index(products) {
@@ -23,35 +25,55 @@ function index(products) {
 
 export const STATIC_CATALOG = index([{ ...KIT }, ...FRAGRANCES]);
 
+// Dashboard-edited details; anything not set falls back to `base` (the built-in copy).
+function details(p, base) {
+  return {
+    name: p.name || base?.name,
+    eyebrow: p.eyebrow || base?.eyebrow || '',
+    tagline: p.tagline || base?.tagline || '',
+    description: p.description || base?.description || '',
+    // The API sends { title, detail } rows; the product page renders [title, detail] pairs.
+    inside: p.inside ? p.inside.map((r) => [r.title, r.detail]) : base?.inside,
+    specs: p.specs || base?.specs
+  };
+}
+
+function kitProduct(p) {
+  applyKitPricing(p.price, p.mrp);
+  return { ...KIT, ...details(p, KIT), packs: p.packs || KIT.packs, stock: p.stock ?? null };
+}
+
+// A fragrance's scent overrides apply to its product page; the episode story pages
+// keep the built-in copy.
+function fragranceProduct(p, base) {
+  const episode = { ...base.episode, scent: p.scent || base.episode.scent, scentTags: p.scentTags || base.episode.scentTags };
+  return { ...base, ...details(p, base), episode, ...pricing(p) };
+}
+
+// Price fields from the dashboard (a fragrance without a price has price null).
+function pricing(p) {
+  return { price: p.price ?? null, mrp: p.mrp || p.price, discountPct: discount(p.price, p.mrp), stock: p.stock ?? null };
+}
+
+function extraProduct(p) {
+  return {
+    slug: p.slug,
+    type: 'product',
+    ...details(p, { eyebrow: 'Quirky Camel extra' }),
+    ...pricing(p),
+    image: p.image || null
+  };
+}
+
+function toProduct(p, base) {
+  if (p.slug === KIT_SLUG) return kitProduct(p);
+  if (base) return fragranceProduct(p, base);
+  return p.type === 'product' ? extraProduct(p) : null;
+}
+
 export function buildCatalog(apiProducts) {
-  const out = [];
-  const staticBySlug = Object.fromEntries([KIT, ...FRAGRANCES].map((p) => [p.slug, p]));
-  for (const p of apiProducts) {
-    const base = staticBySlug[p.slug];
-    const text = {
-      name: p.name || base?.name,
-      tagline: p.tagline || base?.tagline || '',
-      description: p.description || base?.description || ''
-    };
-    if (p.slug === KIT_SLUG) {
-      applyKitPricing(p.price, p.mrp);
-      out.push({ ...KIT, ...text, stock: p.stock ?? null });
-    } else if (base) {
-      out.push({ ...base, ...text });
-    } else if (p.type === 'product') {
-      out.push({
-        slug: p.slug,
-        type: 'product',
-        eyebrow: 'Quirky Camel extra',
-        ...text,
-        price: p.price,
-        mrp: p.mrp || p.price,
-        discountPct: discount(p.price, p.mrp),
-        stock: p.stock ?? null,
-        image: p.image || null
-      });
-    }
-  }
+  const staticBySlug = Object.fromEntries(FRAGRANCES.map((p) => [p.slug, p]));
+  const out = apiProducts.map((p) => toProduct(p, staticBySlug[p.slug])).filter(Boolean);
   // Keep a stable order: kit, fragrances by episode, then extras as added.
   const rank = (p) => {
     if (p.type === 'kit') return 0;

@@ -7,6 +7,9 @@ import { Info, Gift, Check, ShieldCheck, Zap } from 'lucide-react';
 export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }) {
   const [quantity, setQuantity] = useState(1);
   const perEp = Math.round(PRICE / 6);
+  // Both come from the dashboard (kit price and MRP).
+  const saving = Math.max(0, ORIGINAL_PRICE - PRICE);
+  const savingPct = saving ? Math.round((saving / ORIGINAL_PRICE) * 100) : 0;
 
   const handleQtyChange = (delta) => {
     setQuantity((prev) => Math.max(1, Math.min(10, prev + delta)));
@@ -44,7 +47,11 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
         <div className="buy" id="buyBox">
           <div className="buy-header-row">
             <span className="eyebrow">The Flagship Experience</span>
-            <span className="discount-badge">Save 33% (₹750 Off)</span>
+            {saving > 0 && (
+              <span className="discount-badge">
+                Save {savingPct}% ({formatINR(saving)} Off)
+              </span>
+            )}
           </div>
 
           <h2 className="bubble b-blue">The Complete Kit</h2>
@@ -52,7 +59,7 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
           <div className="price-container">
             <div className="price">
               <b>{formatINR(PRICE)}</b>
-              <span className="original-price">{formatINR(ORIGINAL_PRICE)}</span>
+              {saving > 0 && <span className="original-price">{formatINR(ORIGINAL_PRICE)}</span>}
               <small>inclusive of all taxes</small>
             </div>
             <p className="perep">That’s only {formatINR(perEp)} per fragrance episode.</p>

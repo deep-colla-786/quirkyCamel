@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { formatINR, EPISODES } from '../../data/episodes';
 import PropTypes from 'prop-types';
-import { CheckCircle2, ArrowRight, X } from 'lucide-react';
+import { CheckCircle2, ArrowRight, X, Truck } from 'lucide-react';
 import { catalogShape, customerShape } from '../../lib/propShapes';
 
 export default function OrderSuccessModal({
@@ -112,6 +112,11 @@ export default function OrderSuccessModal({
 
         {/* Buttons */}
         <div className="success-actions">
+          {paymentData.trackId && (
+            <a className="btn ghost-dark" href={`#track/${paymentData.trackId}`} onClick={onClose}>
+              <Truck size={16} /> Track your order
+            </a>
+          )}
           <button className="btn blue" onClick={onClose}>
             Continue Exploring <ArrowRight size={16} />
           </button>
@@ -127,7 +132,8 @@ OrderSuccessModal.propTypes = {
   paymentData: PropTypes.shape({
     orderId: PropTypes.string,
     paymentId: PropTypes.string,
-    amount: PropTypes.number
+    amount: PropTypes.number,
+    trackId: PropTypes.string
   }),
   customerData: customerShape,
   items: PropTypes.arrayOf(PropTypes.shape({

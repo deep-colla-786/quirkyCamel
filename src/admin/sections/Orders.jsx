@@ -9,6 +9,7 @@ import EmailBadge from '../components/EmailBadge';
 import MailBar from '../components/MailBar';
 import ResendButton from '../components/ResendButton';
 import InvoiceModal from '../components/InvoiceModal';
+import DeliveryBadge from '../../components/delivery/DeliveryBadge';
 
 const CSV_HEADER = ['Invoice', 'Date', 'Account', 'Name', 'Phone', 'Address', 'City', 'PIN', 'Items', 'Amount', 'Status', 'Mode', 'Razorpay order', 'Payment ID'];
 
@@ -21,7 +22,7 @@ const csvRow = (o) => [
 const matches = (o, s) =>
   [o.invoice, o.account, o.customer.name, o.customer.phone, o.customer.city, itemsText(o.items)].join(' ').toLowerCase().includes(s);
 
-function OrderRow({ order: o, onChanged, onViewInvoice }) {
+function OrderRow({ order: o, onChanged, onViewInvoice, onTrack }) {
   const isDemo = o.mode === 'demo';
   const isPaid = o.status === 'paid';
   return (
@@ -60,6 +61,15 @@ function OrderRow({ order: o, onChanged, onViewInvoice }) {
         )}
       </td>
       <td>
+        {isPaid ? (
+          <button className="ad-link" onClick={() => onTrack(o.id)}>
+            <DeliveryBadge shipment={o.delivery} />
+          </button>
+        ) : (
+          '—'
+        )}
+      </td>
+      <td>
         <EmailBadge e={o.emails?.customer} />
       </td>
       <td>
@@ -73,10 +83,11 @@ function OrderRow({ order: o, onChanged, onViewInvoice }) {
 OrderRow.propTypes = {
   order: orderShape.isRequired,
   onChanged: PropTypes.func.isRequired,
-  onViewInvoice: PropTypes.func.isRequired
+  onViewInvoice: PropTypes.func.isRequired,
+  onTrack: PropTypes.func.isRequired
 };
 
-export default function Orders({ orders, onChanged }) {
+export default function Orders({ orders, onChanged, onTrack }) {
   const [q, setQ] = useState('');
   const [viewing, setViewing] = useState(null);
   const closeInvoice = useCallback(() => setViewing(null), []);
@@ -119,13 +130,14 @@ export default function Orders({ orders, onChanged }) {
                   <th className="num">Amount</th>
                   <th>Status</th>
                   <th>Invoice</th>
+                  <th>Delivery</th>
                   <th>Invoice email</th>
                   <th>Admin email</th>
                 </tr>
               </thead>
               <tbody>
                 {list.map((o) => (
-                  <OrderRow key={o.id} order={o} onChanged={onChanged} onViewInvoice={setViewing} />
+                  <OrderRow key={o.id} order={o} onChanged={onChanged} onViewInvoice={setViewing} onTrack={onTrack} />
                 ))}
               </tbody>
             </table>
@@ -141,5 +153,6 @@ export default function Orders({ orders, onChanged }) {
 
 Orders.propTypes = {
   orders: PropTypes.arrayOf(orderShape),
-  onChanged: PropTypes.func.isRequired
+  onChanged: PropTypes.func.isRequired,
+  onTrack: PropTypes.func.isRequired
 };

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { LayoutDashboard, ShoppingCart, Users, LogIn, Package, RefreshCw, LogOut, KeyRound } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Users, LogIn, Package, RefreshCw, LogOut, KeyRound, Truck } from 'lucide-react';
 import { adminApi } from '../lib/api';
 import ProductEditor from './components/ProductEditor';
 import Overview from './sections/Overview';
@@ -8,11 +8,13 @@ import Orders from './sections/Orders';
 import UsersTab from './sections/UsersTab';
 import Logins from './sections/Logins';
 import Sessions from './sections/Sessions';
+import Deliveries from './sections/Deliveries';
 import Products from './sections/Products';
 
 const TABS = [
   ['overview', 'Overview', LayoutDashboard],
   ['orders', 'Orders', ShoppingCart],
+  ['deliveries', 'Deliveries', Truck],
   ['users', 'Users', Users],
   ['logins', 'Login activity', LogIn],
   ['sessions', 'Sessions', KeyRound],
@@ -30,6 +32,8 @@ export default function AdminDashboard({ user, onLogout }) {
   const [flash, setFlash] = useState('');
   // Bumped by "Refresh" so sections that load their own data fetch it again.
   const [refreshKey, setRefreshKey] = useState(0);
+  // Order whose delivery to open when switching to the Deliveries tab from Orders.
+  const [deliveryOrder, setDeliveryOrder] = useState(null);
   const flashTimer = useRef(null);
 
   // A 401 is handled by AdminApp (session ended); 403 means the account lost admin rights.
@@ -72,7 +76,17 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const sections = {
     overview: () => <Overview stats={stats} orders={orders} onGo={setTab} />,
-    orders: () => <Orders orders={orders} onChanged={load} />,
+    orders: () => (
+      <Orders
+        orders={orders}
+        onChanged={load}
+        onTrack={(id) => {
+          setDeliveryOrder(id);
+          setTab('deliveries');
+        }}
+      />
+    ),
+    deliveries: () => <Deliveries openOrderId={deliveryOrder} onOpen={setDeliveryOrder} />,
     users: () => <UsersTab />,
     logins: () => <Logins />,
     sessions: () => <Sessions onFlash={say} />,

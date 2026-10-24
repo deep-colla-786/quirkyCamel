@@ -910,3 +910,72 @@
   display: flex;
   white-space: nowrap;
 }
+
+/* ---------- Product editor: pricing and list sections ---------- */
+.ad-editor-modal {
+  width: min(680px, 100%);
+}
+.ad-form-row-3 {
+  grid-template-columns: 1fr 0.8fr 1fr;
+}
+.ad-rows {
+  border: 0;
+  margin: 0;
+  padding: 12px 14px 14px;
+  border-radius: 14px;
+  background: #fafbfc;
+  box-shadow: inset 0 0 0 1px #e6e8ee;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.ad-rows legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.ad-rows-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.ad-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+}
+.ad-row input {
+  min-width: 0;
+}
+.ad-form input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ad-price-preview {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ad-ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ad-price-preview s {
+  color: var(--muted);
+}
+@media (max-width: 560px) {
+  .ad-form-row-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- Deliveries ---------- */
+.ad-delivery-modal {
+  width: min(980px, 100%);
+}
+.ad-delivery-modal header small {
+  display: block;
+  margin-top: 2px;
+}

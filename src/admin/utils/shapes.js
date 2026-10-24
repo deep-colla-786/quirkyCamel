@@ -26,6 +26,7 @@ export const orderShape = PropTypes.shape({
   mode: PropTypes.string,
   paymentId: PropTypes.string,
   emails: PropTypes.shape({ customer: emailResultShape, admin: emailResultShape }),
+  delivery: PropTypes.shape({ stage: PropTypes.string, state: PropTypes.string, awb: PropTypes.string }),
   createdAt: PropTypes.string
 });
 
@@ -39,7 +40,13 @@ export const productShape = PropTypes.shape({
   active: PropTypes.bool,
   image: PropTypes.string,
   builtIn: PropTypes.bool,
-  unitsSold: PropTypes.number
+  unitsSold: PropTypes.number,
+  eyebrow: PropTypes.string,
+  inside: PropTypes.arrayOf(PropTypes.shape({ title: PropTypes.string, detail: PropTypes.string })),
+  specs: PropTypes.arrayOf(PropTypes.shape({ label: PropTypes.string, value: PropTypes.string })),
+  packs: PropTypes.arrayOf(PropTypes.shape({ qty: PropTypes.number, label: PropTypes.string, note: PropTypes.string })),
+  scent: PropTypes.string,
+  scentTags: PropTypes.arrayOf(PropTypes.string)
 });
 
 export const statsShape = PropTypes.shape({

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { INDIAN_STATES } from '../../data/states';
 import { customerShape } from '../../lib/propShapes';
 
 // Step 2: delivery address form.
@@ -83,6 +84,18 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
           />
         </label>
       </div>
+
+      <label htmlFor="co-state">
+        STATE
+        <select id="co-state" name="state" value={formData.state} onChange={onChange} required>
+          <option value="">Choose your state</option>
+          {INDIAN_STATES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="check" htmlFor="co-isgift">
         <input

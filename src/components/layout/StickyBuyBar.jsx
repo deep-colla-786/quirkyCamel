@@ -10,7 +10,10 @@ export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView }) {
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      if (currentView === 'home') {
+      if (currentView === 'track') {
+        // Order tracking isn't a shopping page; the bar would cover the timeline.
+        setVisible(false);
+      } else if (currentView === 'home') {
         // Show after scrolling past hero (~450px) and hide near buy box if needed
         setVisible(scrollY > 480);
       } else {

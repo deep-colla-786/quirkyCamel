@@ -7,12 +7,13 @@ import { kitSVG } from '../../../utils/svgGenerators';
 import { productShape } from '../../../lib/propShapes';
 
 // Buy box: pack / quantity, gift note, add-to-cart / buy-now and the delivery PIN check.
-// `target` is what the buttons actually buy: the product itself, or the kit for a fragrance page.
+// `target` is what the buttons actually buy: the product itself, or the kit for a
+// fragrance that has no price of its own.
 export default function BuyPanel({ product, kit, target, available, onAddToCart, onBuyNow }) {
   const isKit = product.type === 'kit';
-  const isExtra = product.type === 'product';
   const ep = product.episode;
   const KIT = kit; // null if the kit is hidden in the admin panel
+  const buysKit = target !== product; // a fragrance without its own price
   const maxQty =
     target && target.stock !== null && target.stock !== undefined ? Math.max(1, Math.min(MAX_QTY, target.stock)) : MAX_QTY;
   const [qty, setQty] = useState(1);
@@ -54,7 +55,7 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
           </fieldset>
         </>
       ) : null}
-      {(isKit || isExtra) && (
+      {!buysKit && (
         <div className="pd-qty-row">
           <span>
             Quantity
@@ -69,7 +70,7 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
           </div>
         </div>
       )}
-      {ep && (
+      {ep && buysKit && (
         <div className="pd-incl">
           <div className="pd-incl-art" dangerouslySetInnerHTML={{ __html: kitSVG(EPISODES) }} />
           <div>
@@ -80,6 +81,11 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
             {KIT ? <a href={`#product/${KIT.slug}`}>View the kit →</a> : <p>The kit is currently unavailable.</p>}
           </div>
         </div>
+      )}
+      {ep && !buysKit && KIT && (
+        <p className="pd-also-kit">
+          Also in <a href={`#product/${KIT.slug}`}>The Complete Kit</a>, with the other five episodes.
+        </p>
       )}
 
       <label className="pd-gift">
@@ -100,7 +106,7 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
       {available ? (
         <div className="pd-ctas">
           <button className="btn blue" onClick={() => onAddToCart(qty, opts())}>
-            <ShoppingBag size={19} /> {ep ? 'Add the kit to cart' : 'Add to cart'} · {formatINR(target.price * qty)}
+            <ShoppingBag size={19} /> {buysKit ? 'Add the kit to cart' : 'Add to cart'} · {formatINR(target.price * qty)}
           </button>
           <button className="btn lime" onClick={() => onBuyNow(qty, opts())}>
             <Zap size={19} fill="currentColor" /> Buy now

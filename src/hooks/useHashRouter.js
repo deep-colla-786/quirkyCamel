@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { EPISODES_BY_ID } from '../data/episodes';
 import { KIT_SLUG, productHash } from '../data/products';
 
-// Hash router. Routes: #top, #shop, #shop/saved, #product/<slug>, #account, #<episode-id>,
-// and #<section-id> for sections on the home page.
+// Hash router. Routes: #top, #shop, #shop/saved, #product/<slug>, #account, #track/<order-id>,
+// #<episode-id>, and #<section-id> for sections on the home page.
 export default function useHashRouter({ onViewProduct }) {
-  const [currentView, setCurrentView] = useState('home'); // 'home' | 'episode' | 'shop' | 'product' | 'account'
+  const [currentView, setCurrentView] = useState('home'); // 'home' | 'episode' | 'shop' | 'product' | 'account' | 'track'
   const [productSlug, setProductSlug] = useState(KIT_SLUG);
   const [shopSaved, setShopSaved] = useState(false);
   const [activeEpisodeId, setActiveEpisodeId] = useState('trouble-in-oasis');
+  const [trackOrderId, setTrackOrderId] = useState('');
 
   const route = useCallback(() => {
     const hash = decodeURIComponent(window.location.hash.replace(/^#/, ''));
@@ -23,6 +24,10 @@ export default function useHashRouter({ onViewProduct }) {
       setProductSlug(slug);
       setCurrentView('product');
       onViewProduct(slug);
+      toTop();
+    } else if (hash.startsWith('track/')) {
+      setTrackOrderId(hash.slice('track/'.length));
+      setCurrentView('track');
       toTop();
     } else if (hash === 'account') {
       setCurrentView('account');
@@ -66,5 +71,5 @@ export default function useHashRouter({ onViewProduct }) {
     else goTo(targetId ? `#${targetId}` : '#top');
   };
 
-  return { currentView, productSlug, shopSaved, activeEpisodeId, goTo, handleNavigate };
+  return { currentView, productSlug, shopSaved, activeEpisodeId, trackOrderId, goTo, handleNavigate };
 }

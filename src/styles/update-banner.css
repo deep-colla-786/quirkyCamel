@@ -1,0 +1,32 @@
+/* "A newer version is available" notice (store + admin). */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 32px);
+  padding: 10px 12px 10px 18px;
+  border-radius: 999px;
+  background: #14295e;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.45);
+}
+.update-banner button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 14px;
+  background: #c4e539;
+  color: #1d2a05;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
