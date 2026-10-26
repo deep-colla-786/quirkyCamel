@@ -1,19 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import CartStep from './CartStep';
 import ShippingStep from './ShippingStep';
 import ReviewStep from './ReviewStep';
 import { cartLineShape, productShape, userShape } from '../../lib/propShapes';
+import { isValidEmail } from '../../lib/validation';
+import useDialog from '../../hooks/useDialog';
 
-// Same rule as /^\S+@\S+\.\S+$/ (no whitespace; an '@' after the first character; a '.'
-// at least one character after it and before the last character), without regex backtracking.
-const isValidEmail = (value) => {
-  if (/\s/.test(value)) return false;
-  const at = value.indexOf('@', 1);
-  const dot = value.lastIndexOf('.', value.length - 2);
-  return at !== -1 && dot >= at + 2;
-};
+const EMPTY_FORM = { name: '', email: '', phone: '', addr: '', city: '', state: '', pin: '', isgift: false, gift: '' };
 
 // Cart drawer with a three-step checkout: cart → delivery address → review & pay.
 export default function CartDrawer({
@@ -33,17 +28,7 @@ export default function CartDrawer({
   onRequireLogin = (action) => action()
 }) {
   const [step, setStep] = useState('cart'); // 'cart' | 'shipping' | 'review'
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    addr: '',
-    city: '',
-    state: '',
-    pin: '',
-    isgift: false,
-    gift: ''
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
 
   // A gift note entered on a product page carries into the delivery form.
@@ -51,8 +36,17 @@ export default function CartDrawer({
     if (giftNote !== null) setFormData((d) => ({ ...d, isgift: true, gift: giftNote || d.gift }));
   }, [giftNote]);
 
-  // Fill empty delivery fields from the account (saved at the previous checkout).
+  // Fill empty delivery fields from the account (saved at the previous checkout). When a
+  // different account signs in (or the current one signs out), the previous person's
+  // details are cleared first; details typed as a guest are kept when they log in.
+  const formOwner = useRef(user?.id ?? null);
   useEffect(() => {
+    const id = user?.id ?? null;
+    if (formOwner.current !== null && formOwner.current !== id) {
+      setFormData(EMPTY_FORM);
+      setFormError('');
+    }
+    formOwner.current = id;
     if (!user) return;
     setFormData((d) => ({
       ...d,
@@ -76,6 +70,8 @@ export default function CartDrawer({
     if (isOpen) setStep(lines.length > 0 ? startStep : 'cart');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, startStep]);
+
+  const dialogRef = useDialog(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -131,7 +127,7 @@ export default function CartDrawer({
     <>
       <div className="scrim on" onClick={onClose} aria-hidden="true" />
 
-      <aside className="drawer open" role="dialog" aria-modal="true" aria-label="Shopping Cart">
+      <aside ref={dialogRef} className="drawer open" role="dialog" aria-modal="true" aria-label="Shopping Cart">
         <header>
           <h3>
             {step === 'cart' && 'Your Cart'}

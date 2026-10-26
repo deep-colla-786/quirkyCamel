@@ -38,11 +38,17 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), api(env)],
     build: {
+      // three.js (~575 kB) is only in the lazily loaded Hero3D chunk.
+      chunkSizeWarningLimit: 600,
       rollupOptions: {
         // Two separate apps: the store (/) and the admin panel (/admin).
         input: {
           main: fileURLToPath(new URL('./index.html', import.meta.url)),
           admin: fileURLToPath(new URL('./admin/index.html', import.meta.url)),
+        },
+        output: {
+          // React is shared by both apps; give its chunk a clear name. three.js stays in the lazy Hero3D chunk.
+          manualChunks: (id) => (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id) ? 'react' : undefined),
         },
       },
     },

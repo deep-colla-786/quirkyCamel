@@ -92,7 +92,7 @@
 }
 .wishlist-btn .n {
   background: #ff5fa8;
-  color: #fff;
+  color: var(--blue-ink);
   border-radius: 99px;
   padding: 1px 6px;
   font-size: 11px;
@@ -129,11 +129,118 @@
   padding: 0 6px;
 }
 
+/* Phone/tablet menu (hidden on desktop). Same look as the shop filter drawer. */
+.menu-btn,
+.menu-panel,
+.menu-scrim {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .nav nav {
     display: none;
   }
   .nav-actions {
     margin-left: auto;
+  }
+  .menu-btn {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -6px;
+    border-radius: 50%;
+    color: var(--white);
+  }
+  .menu-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 84;
+    background: rgba(20, 41, 94, 0.45);
+  }
+  .menu-panel {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(340px, 88vw);
+    z-index: 85;
+    background: var(--white);
+    color: var(--ink);
+    border-radius: 0 24px 24px 0;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.05);
+    overflow-y: auto;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(18px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+    transform: translateX(-105%);
+    transition: transform 0.35s cubic-bezier(0.3, 1.1, 0.5, 1), visibility 0s 0.35s;
+    visibility: hidden;
+  }
+  .menu-panel.open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.35s cubic-bezier(0.3, 1.1, 0.5, 1);
+  }
+  .menu-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .menu-head b {
+    font-size: 15px;
+  }
+  .menu-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--paper);
+  }
+  .menu-panel nav {
+    display: grid;
+    border-top: 1.5px solid #ecedf1;
+    padding-top: 8px;
+  }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: left;
+    text-decoration: none;
+  }
+  .menu-link:hover,
+  .menu-link.active {
+    color: var(--blue);
+    background: var(--paper-2);
+  }
+}
+
+/* Small phones: tighter header so logo, account, cart and menu fit on one row. */
+@media (max-width: 480px) {
+  .nav .wrap { gap: 12px; }
+  .nav-logo { width: 104px; }
+  .nav-actions { gap: 6px; }
+  .cart-btn { padding-inline: 14px; }
+}
+
+/* Touch screens: header buttons at least 44px tall. */
+@media (pointer: coarse) {
+  .account-btn,
+  .cart-btn,
+  .wishlist-btn {
+    min-height: 44px;
+  }
+  .account-btn {
+    min-width: 44px;
+    justify-content: center;
   }
 }

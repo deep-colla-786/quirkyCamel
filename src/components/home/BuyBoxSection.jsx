@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { EPISODES, PRICE, ORIGINAL_PRICE, formatINR, RITUAL_STEPS } from '../../data/episodes';
+import { STORE_POLICY } from '../../data/products';
 import { kitSVG, sachetSVG } from '../../utils/svgGenerators';
 import { Info, Gift, Check, ShieldCheck, Zap } from 'lucide-react';
+import useOffscreenPause from '../../hooks/useOffscreenPause';
 
 export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }) {
+  const pauseRef = useRef(null);
+  useOffscreenPause(pauseRef); // pause its animations while scrolled away
+
   const [quantity, setQuantity] = useState(1);
   const perEp = Math.round(PRICE / 6);
   // Both come from the dashboard (kit price and MRP).
@@ -16,10 +21,10 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
   };
 
   return (
-    <section className="band kit" id="kit">
+    <section className="band kit" id="kit" ref={pauseRef}>
       <div className="wrap">
         <div>
-          <figure id="kitFig" dangerouslySetInnerHTML={{ __html: kitSVG(EPISODES) }} />
+          <figure id="kitFig" dangerouslySetInnerHTML={{ __html: kitSVG(EPISODES, 'buybox-kit') }} />
 
           <div className="thumbs" aria-label="Fragrances in the kit">
             {EPISODES.map((e) => (
@@ -27,9 +32,9 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
                 key={e.id}
                 className="thumb-btn"
                 onClick={() => onSelectEpisode && onSelectEpisode(e.id)}
-                aria-label={`View ${e.name} episode`}
+                aria-label={`${e.name} attar sachet: view episode`}
                 title={e.name}
-                dangerouslySetInnerHTML={{ __html: sachetSVG(e) }}
+                dangerouslySetInnerHTML={{ __html: sachetSVG(e, {}, `buybox-${e.id}`) }}
               />
             ))}
           </div>
@@ -66,7 +71,7 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
           </div>
 
           <p>
-            The entire Quirky Camel collection in one collector box: sealed attar sachets of all six episodes, plus a vegan leather snap pouch to carry today’s pick wherever life takes you.
+            The entire Quirky Camel collection in one collector box: sealed attar sachets of all six episodes, plus a snap pouch, carabiner and drawstring bag to carry today’s pick wherever life takes you.
           </p>
 
           <ul className="inc" id="incList">
@@ -90,16 +95,16 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
           <div className="giftnote">
             <Gift size={20} />
             <span>
-              <b>Gifting?</b> Arrives in a luxe collector gift box with magnetic closure. You can add a personalized gift message at checkout.
+              <b>Gifting?</b> Arrives in a gift-ready collector box. You can add a free gift note at checkout.
             </span>
           </div>
 
           <div className="inbox">
             <span>6 Sealed Attar Sachets</span>
-            <span>Magnetic Collector Box</span>
+            <span>Collector Box</span>
             <span>Snap Pouch + Carabiner</span>
             <span>Drawstring Travel Bag</span>
-            <span>100% Alcohol-Free</span>
+            <span>Alcohol-Free</span>
           </div>
 
           <div className="qty-row">
@@ -123,7 +128,7 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
               className="btn blue"
               onClick={() => onAddToCart && onAddToCart(quantity)}
             >
-              Add kit to cart · {formatINR(PRICE * quantity)}
+              Add to cart · {formatINR(PRICE * quantity)}
             </button>
           </div>
 
@@ -132,7 +137,7 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
             style={{ marginTop: '10px' }}
             onClick={() => onBuyNow && onBuyNow(quantity)}
           >
-            <Zap size={18} fill="currentColor" /> Instant Buy with Razorpay
+            <Zap size={18} fill="currentColor" /> Buy now with Razorpay
           </button>
 
           <div className="only-kit">
@@ -143,9 +148,8 @@ export default function BuyBoxSection({ onAddToCart, onBuyNow, onSelectEpisode }
           </div>
 
           <div className="trust-row">
-            <span><ShieldCheck size={16} /> 100% Pure Perfume Oil</span>
-            <span>Free Shipping Across India</span>
-            <span>Cash on Delivery Available</span>
+            <span><ShieldCheck size={16} /> Sealed, spill-free sachets</span>
+            {STORE_POLICY.freeShipping && <span>Free shipping across India</span>}
           </div>
         </div>
       </div>

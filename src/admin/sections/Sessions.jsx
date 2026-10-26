@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { LogOut, UserX } from 'lucide-react';
 import { adminApi } from '../../lib/api';
 import { fmtDateTime } from '../utils/format';
+import LoadError from '../components/LoadError';
 
 const AREAS = { store: ['info', 'Store'], admin: ['ok', 'Admin'] };
 const FILTERS = [
@@ -69,12 +70,16 @@ SessionRow.propTypes = {
 // sign a session (or every session of a user) out.
 export default function Sessions({ onFlash }) {
   const [rows, setRows] = useState(null);
+  const [error, setError] = useState('');
   const [area, setArea] = useState('all');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     const res = await adminApi.sessions();
-    if (res.ok) setRows(res.data.sessions);
+    if (res.ok) {
+      setRows(res.data.sessions);
+      setError('');
+    } else if (res.status !== 401) setError(res.data.error || 'Couldn’t load sessions.');
   }, []);
 
   useEffect(() => {
@@ -96,6 +101,7 @@ export default function Sessions({ onFlash }) {
       (d) => `Ended ${d.ended} session${d.ended === 1 ? '' : 's'} for ${s.name}${s.current ? ' (kept yours)' : ''}.`
     );
 
+  if (error && !rows) return <LoadError message={error} onRetry={load} />;
   if (!rows) return <p className="ad-muted">Loading…</p>;
   const list = area === 'all' ? rows : rows.filter((r) => r.scope === area);
 

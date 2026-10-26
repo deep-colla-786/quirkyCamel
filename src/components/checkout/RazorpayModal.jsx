@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { formatINR } from '../../data/episodes';
 import { Shield, Smartphone, CreditCard, Landmark, Wallet, X } from 'lucide-react';
 import { customerShape } from '../../lib/propShapes';
+import useDialog from '../../hooks/useDialog';
 
 export default function RazorpayModal({
   isOpen,
@@ -20,6 +21,7 @@ export default function RazorpayModal({
   const [cardCvv, setCardCvv] = useState('123');
   const [selectedBank, setSelectedBank] = useState('HDFC');
   const [isProcessing, setIsProcessing] = useState(false);
+  const dialogRef = useDialog(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -52,7 +54,7 @@ export default function RazorpayModal({
   };
 
   return (
-    <div className="razorpay-scrim" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="razorpay-scrim" role="dialog" aria-modal="true" aria-label="Payment">
       <div className="razorpay-modal">
         {/* Header */}
         <div className="rzp-header">
@@ -160,8 +162,9 @@ export default function RazorpayModal({
               <div className="rzp-card-view">
                 <span className="rzp-section-title">Test Card Details (Pre-filled):</span>
                 <div className="rzp-form-group">
-                  <label>Card Number</label>
+                  <label htmlFor="rzp-card-number">Card Number</label>
                   <input
+                    id="rzp-card-number"
                     type="text"
                     value={cardNumber}
                     onChange={(e) => setCardNumber(e.target.value)}
@@ -169,16 +172,18 @@ export default function RazorpayModal({
                 </div>
                 <div className="rzp-form-row">
                   <div className="rzp-form-group">
-                    <label>Valid Thru</label>
+                    <label htmlFor="rzp-card-expiry">Valid Thru</label>
                     <input
+                      id="rzp-card-expiry"
                       type="text"
                       value={cardExpiry}
                       onChange={(e) => setCardExpiry(e.target.value)}
                     />
                   </div>
                   <div className="rzp-form-group">
-                    <label>CVV</label>
+                    <label htmlFor="rzp-card-cvv">CVV</label>
                     <input
+                      id="rzp-card-cvv"
                       type="text"
                       value={cardCvv}
                       onChange={(e) => setCardCvv(e.target.value)}

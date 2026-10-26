@@ -108,7 +108,7 @@ function shell(title, inner) {
   </td></tr></table></body></html>`;
 }
 
-function customerInvoice(order) {
+function customerInvoice(order, trackUrl = null) {
   const c = order.customer;
   const num = invoiceNumber(order);
   const date = new Date(order.paidAt || order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -125,6 +125,7 @@ function customerInvoice(order) {
     </tr></table>
     ${itemsTable(order)}
     ${c.gift ? `<p style="margin:18px 0 0;font-size:13px"><b>Gift note:</b> “${esc(c.gift)}”</p>` : ''}
+    ${trackUrl ? `<p style="margin:20px 0 0"><a href="${esc(trackUrl)}" style="display:inline-block;background:#2259B2;color:#fff;font-weight:700;text-decoration:none;padding:11px 18px;border-radius:999px">Track your order</a></p>` : ''}
     <p style="margin:22px 0 0;font-size:12px;color:#5b5f6b">Prices are inclusive of all taxes. Keep this email for your records.</p>`);
   return {
     subject: `Your Quirky Camel invoice ${num}`,
@@ -160,11 +161,11 @@ async function deliver(env, to, msg) {
 }
 
 // Fire-and-forget after an order is paid; records the result on the order.
-export async function sendOrderEmails(env, order, user) {
+export async function sendOrderEmails(env, order, user, { trackUrl = null } = {}) {
   const db = await getDb(env);
   const result = {};
   const jobs = [
-    ['customer', order.customer.email || user?.email, customerInvoice(order)],
+    ['customer', order.customer.email || user?.email, customerInvoice(order, trackUrl)],
     ['admin', env.ADMIN_EMAIL, adminAlert(order, user)]
   ];
   for (const [key, to, msg] of jobs) {
@@ -225,4 +226,19 @@ export async function sendTestEmail(env, to) {
   } catch (err) {
     throw new HttpError(502, explainMailError(err));
   }
+}
+
+// Password reset link (valid for an hour). Saved to outbox/ when SMTP isn't set up.
+export async function sendPasswordResetEmail(env, to, name, link) {
+  const first = esc(String(name || '').split(' ')[0] || 'there');
+  const html = shell('Reset your password', `
+    <h1 style="margin:0 0 8px;font-size:20px">Reset your password</h1>
+    <p style="margin:0 0 18px;color:#5b5f6b">Hi ${first}, we got a request to reset the password for your Quirky Camel account. The link works for one hour.</p>
+    <p style="margin:0 0 18px"><a href="${esc(link)}" style="display:inline-block;background:#2259B2;color:#fff;font-weight:700;text-decoration:none;padding:12px 20px;border-radius:999px">Choose a new password</a></p>
+    <p style="margin:0;font-size:12px;color:#5b5f6b">If you didn’t ask for this, you can ignore this email; your password won’t change.</p>`);
+  return deliver(env, to, {
+    subject: 'Reset your Quirky Camel password',
+    html,
+    text: `Reset your Quirky Camel password (link valid for one hour): ${link}`
+  });
 }

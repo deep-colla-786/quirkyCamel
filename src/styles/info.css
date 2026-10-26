@@ -1,0 +1,85 @@
+/* Information pages (shipping, refunds, privacy, terms, contact), not-found and
+   password reset. Built on the account page's cards and headings. */
+.info-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 20px;
+  align-items: start;
+}
+.info-body {
+  padding: clamp(20px, 3vw, 32px);
+  display: grid;
+  gap: 22px;
+  line-height: 1.65;
+  color: #33363d;
+}
+.info-body section > h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.info-body p,
+.info-body ul {
+  margin: 0 0 8px;
+}
+.info-body ul {
+  padding-left: 20px;
+}
+.info-body a,
+.info-contact a {
+  color: var(--blue);
+  font-weight: 600;
+}
+.info-contact {
+  background: var(--paper-2, #f6f6f2);
+  box-shadow: none;
+}
+.info-contact .account-facts span {
+  display: grid;
+  gap: 2px;
+}
+.info-contact .account-facts small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.info-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.info-nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.info-nav a:hover,
+.info-nav a[aria-current='page'] {
+  background: #eef3fc;
+  color: var(--blue);
+}
+.page-loading {
+  min-height: 70vh;
+}
+@media (max-width: 760px) {
+  .info-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.reset-form {
+  width: min(420px, 100%);
+  text-align: left;
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}

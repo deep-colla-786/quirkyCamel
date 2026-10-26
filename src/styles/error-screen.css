@@ -1,0 +1,31 @@
+/* Full-page fallback when the app hits an error (store + admin). */
+.error-screen {
+  min-height: 70vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  text-align: center;
+  background: var(--paper-2, #f6f6f2);
+}
+.error-screen .icon {
+  width: 72px;
+  height: 52px;
+  color: var(--blue, #2259b2);
+}
+.error-screen h1 {
+  margin: 6px 0 0;
+  color: var(--blue, #2259b2);
+}
+.error-screen p {
+  margin: 0 0 10px;
+  color: var(--muted, #5b5f6b);
+  max-width: 420px;
+}
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}

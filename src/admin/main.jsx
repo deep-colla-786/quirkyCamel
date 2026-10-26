@@ -6,10 +6,14 @@ import '../styles/index.css';
 import '../styles/admin.css';
 import '../styles/delivery.css';
 import '../styles/update-banner.css';
+import '../styles/error-screen.css';
 import AdminApp from './AdminApp.jsx';
+import ErrorBoundary from '../components/layout/ErrorBoundary.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AdminApp />
+    <ErrorBoundary homeHref="/admin">
+      <AdminApp />
+    </ErrorBoundary>
   </StrictMode>
 );

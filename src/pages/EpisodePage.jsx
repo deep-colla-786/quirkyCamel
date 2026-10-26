@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { EPISODES, PRICE, formatINR, MOOD_LABELS } from '../data/episodes';
 import { SCENES, sachetSVG, sachetBackSVG } from '../utils/svgGenerators';
 import { Info, ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react';
 import { episodeShape } from '../lib/propShapes';
+import useOffscreenPause from '../hooks/useOffscreenPause';
 
 export default function EpisodeView({
   episode,
@@ -12,7 +13,16 @@ export default function EpisodeView({
   onBackHome
 }) {
   const [flipped, setFlipped] = useState(false);
-  const [tiltTransform, setTiltTransform] = useState('');
+  // The pointer tilt lives in a CSS variable set through a ref, so moving the mouse
+  // doesn't re-render the page.
+  const tiltRef = useRef(null);
+  // Pause each section's animations while it is scrolled away.
+  const heroRef = useRef(null);
+  const bodyRef = useRef(null);
+  const kitRef = useRef(null);
+  useOffscreenPause(heroRef);
+  useOffscreenPause(bodyRef);
+  useOffscreenPause(kitRef);
 
   if (!episode) return null;
 
@@ -25,23 +35,32 @@ export default function EpisodeView({
     const r = card.getBoundingClientRect();
     const x = (ev.clientX - r.left) / r.width - 0.5;
     const y = (ev.clientY - r.top) / r.height - 0.5;
-    const baseRotation = flipped ? 'rotateY(180deg) ' : '';
-    setTiltTransform(`${baseRotation}rotateY(${x * 24}deg) rotateX(${-y * 24}deg)`);
+    tiltRef.current?.style.setProperty('--tilt', `rotateY(${x * 24}deg) rotateX(${-y * 24}deg)`);
   };
 
-  const handlePointerLeave = () => {
-    setTiltTransform(flipped ? 'rotateY(180deg)' : '');
+  const clearTilt = () => {
+    tiltRef.current?.style.removeProperty('--tilt');
   };
 
   const toggleFlip = () => {
-    const nextState = !flipped;
-    setFlipped(nextState);
-    setTiltTransform(nextState ? 'rotateY(180deg)' : '');
+    setFlipped((f) => !f);
+    clearTilt();
   };
+
+  const handleFlipKey = (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      toggleFlip();
+    }
+  };
+
+  // Light themes (Oasis, Mirage) set a dark heroInk so the hero text stays readable.
+  const heroInk = episode.pal.heroInk;
+  const titleColor = heroInk || episode.pal.title;
 
   const epThemeStyle = {
     '--ep-bg': episode.pal.bg,
-    '--ep-ink': episode.pal.ink,
+    '--ep-ink': heroInk || episode.pal.ink,
     '--ep-accent': episode.pal.accent,
     '--ep-soft': episode.pal.soft,
     '--ep-deep': episode.pal.deep,
@@ -53,7 +72,7 @@ export default function EpisodeView({
 
   return (
     <div id="episodeView" style={epThemeStyle}>
-      <section className="ep-hero">
+      <section ref={heroRef} className={heroInk ? 'ep-hero ink-dark' : 'ep-hero'}>
         <div className="wrap">
           <div className="crumbs">
             <button className="crumb-btn" onClick={onBackHome}>
@@ -64,22 +83,22 @@ export default function EpisodeView({
               The Episodes
             </button>
             <span>/</span>
-            <span style={{ color: 'var(--ep-accent)' }}>{episode.name}</span>
+            <span style={{ color: heroInk || 'var(--ep-accent)' }}>{episode.name}</span>
           </div>
 
           <div className="grid">
             <div
               className="big-scene"
               id="bigScene"
-              dangerouslySetInnerHTML={{ __html: SCENES[episode.id]() }}
+              dangerouslySetInnerHTML={{ __html: SCENES[episode.id]('ep-hero') }}
             />
 
             <div className="flyin">
               <span className="epno">EPISODE 0{episode.n} OF 06</span>
-              <h1 className="bubble" style={{ color: episode.pal.title }}>
+              <h1 className="bubble" style={{ color: titleColor }}>
                 {episode.name}
               </h1>
-              <p className="hl" style={{ color: episode.pal.title }}>
+              <p className="hl" style={{ color: titleColor }}>
                 “{episode.headline}”
               </p>
               <p className="lede">{episode.body}</p>
@@ -95,7 +114,7 @@ export default function EpisodeView({
                   onClick={() => onAddToCart && onAddToCart(1)}
                 >
                   <ShoppingBag size={18} />
-                  Get in Complete Kit · {formatINR(PRICE)}
+                  Add the kit to cart · {formatINR(PRICE)}
                 </button>
                 <span className="note">
                   Comes as a sealed sachet in the complete kit, alongside the other five episodes.
@@ -106,8 +125,9 @@ export default function EpisodeView({
         </div>
       </section>
 
-      <section className="ep-body">
+      <section ref={bodyRef} className="ep-body">
         <div className="wrap">
+          <h2 className="sr">About {episode.name}</h2>
           <div className="facts">
             <article className="fact world">
               <h3>The World</h3>
@@ -124,13 +144,6 @@ export default function EpisodeView({
                   </span>
                 ))}
               </div>
-
-              {episode.pending && (
-                <div className="pending">
-                  <Info size={18} />
-                  <span>Exact notes will be confirmed from the final fragrance formulation.</span>
-                </div>
-              )}
 
               {episode.note && (
                 <div
@@ -185,16 +198,18 @@ export default function EpisodeView({
                 tabIndex={0}
                 aria-label={`${episode.name} sachet, click to flip`}
                 onClick={toggleFlip}
+                onKeyDown={handleFlipKey}
                 onPointerMove={handlePointerMove}
-                onPointerLeave={handlePointerLeave}
+                onPointerLeave={clearTilt}
               >
                 <div
                   className="in"
-                  style={{ transform: tiltTransform }}
+                  ref={tiltRef}
+                  style={{ transform: `rotateY(${flipped ? 180 : 0}deg) var(--tilt, rotateY(0deg) rotateX(0deg))` }}
                 >
                   <div
                     className="f"
-                    dangerouslySetInnerHTML={{ __html: sachetSVG(episode) }}
+                    dangerouslySetInnerHTML={{ __html: sachetSVG(episode, {}, 'ep-flip') }}
                   />
                   <div
                     className="f b"
@@ -204,7 +219,7 @@ export default function EpisodeView({
               </div>
 
               <div className="look-copy">
-                <h3>The Sachet (Interactive 3D Card)</h3>
+                <h3>The Sachet</h3>
                 <p>
                   <b>{episode.name}</b> comes sealed in its own pocket-sized attar sachet featuring this illustrated scene.
                   Tear at the notch and swipe directly onto your wrists and pulse points.
@@ -221,7 +236,7 @@ export default function EpisodeView({
         </div>
       </section>
 
-      <section className="band ep-kit squig">
+      <section ref={kitRef} className="band ep-kit squig">
         <div className="wrap">
           <div>
             <span className="eyebrow" style={{ color: 'var(--lime)' }}>
@@ -236,7 +251,7 @@ export default function EpisodeView({
             </p>
             <div className="cta-row">
               <button className="btn lime" onClick={() => onAddToCart && onAddToCart(1)}>
-                Add the complete kit · {formatINR(PRICE)}
+                Add the kit to cart · {formatINR(PRICE)}
               </button>
               <button className="btn ghost" onClick={onBackHome}>
                 Explore all episodes
@@ -252,7 +267,7 @@ export default function EpisodeView({
                 onClick={() => onSelectEpisode && onSelectEpisode(x.id)}
                 aria-label={x.name}
               >
-                <div dangerouslySetInnerHTML={{ __html: sachetSVG(x) }} />
+                <div dangerouslySetInnerHTML={{ __html: sachetSVG(x, {}, `ep-six-${x.id}`) }} />
                 <span>{x.name}</span>
               </button>
             ))}

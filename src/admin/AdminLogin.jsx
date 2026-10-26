@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { adminApi } from '../lib/api';
@@ -9,6 +9,10 @@ export default function AdminLogin({ notice, onLoggedIn }) {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState(notice || '');
   const [busy, setBusy] = useState(false);
+  const emailRef = useRef(null);
+
+  // The sign-in form is the whole page, so start in the email field.
+  useEffect(() => emailRef.current?.focus(), []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -37,7 +41,7 @@ export default function AdminLogin({ notice, onLoggedIn }) {
         <h1>Sign in to the dashboard</h1>
         <label>
           Email
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} ref={emailRef} />
         </label>
         <label>
           Password

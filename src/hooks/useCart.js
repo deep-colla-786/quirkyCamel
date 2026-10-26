@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { readStore, writeStore } from '../lib/storage';
+import { useState } from 'react';
+import { readStore, useStoredState } from '../lib/storage';
 import { KIT_SLUG, MAX_QTY } from '../data/products';
 import { isBuyable, inStock } from '../lib/catalog';
 
@@ -25,7 +25,7 @@ export default function useCart({ catalog, showToast, requireLogin }) {
   const [cartStartStep, setCartStartStep] = useState('cart');
   const [giftNote, setGiftNote] = useState(null);
 
-  useEffect(() => writeStore('qc-cart', cart), [cart]);
+  useStoredState('qc-cart', cart, setCart, {});
 
   // Cart lines resolved against the catalog; unavailable products drop out.
   const cartLines = Object.entries(cart)
@@ -58,9 +58,15 @@ export default function useCart({ catalog, showToast, requireLogin }) {
     const problem = unavailableReason(product);
     if (problem) return showToast(problem);
     if (opts.gift !== undefined) setGiftNote(opts.gift);
-    setCart((c) => ({ ...c, [slug]: Math.min(maxFor(product), (c[slug] || 0) + qty) }));
-    const qtyNote = qty > 1 ? ` (×${qty})` : '';
-    showToast(`${product.name} added to cart${qtyNote}`);
+    const max = maxFor(product);
+    const added = Math.min(qty, max - (cart[slug] || 0));
+    if (added <= 0) {
+      showToast(`You already have the maximum of ${max} ${product.name} in your cart.`);
+    } else {
+      setCart((c) => ({ ...c, [slug]: Math.min(max, (c[slug] || 0) + added) }));
+      const qtyNote = added > 1 ? ` (×${added})` : '';
+      showToast(`${product.name} added to cart${qtyNote}`);
+    }
     setCartStartStep('cart');
     setIsCartOpen(true);
   };
@@ -73,10 +79,14 @@ export default function useCart({ catalog, showToast, requireLogin }) {
     if (problem) return showToast(problem);
     if (opts.gift !== undefined) setGiftNote(opts.gift);
     setCart((c) => ({ ...c, [slug]: Math.max(c[slug] || 0, Math.min(maxFor(product), qty)) }));
-    requireLogin(() => {
-      setCartStartStep('shipping');
-      setIsCartOpen(true);
-    });
+    requireLogin(
+      () => {
+        setCartStartStep('shipping');
+        setIsCartOpen(true);
+      },
+      undefined,
+      { allowGuest: true }
+    );
   };
 
   return {

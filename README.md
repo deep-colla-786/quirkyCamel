@@ -40,14 +40,18 @@ Data lives in **MongoDB**. Payments go through **Razorpay**, emails through **SM
   - filters and saved items (wishlist);
   - every product page has an image gallery, a price with any discount, a **live stock level**, tabs (overview, what's inside, specifications, how to use, shipping), related products and recently viewed;
   - fragrance pages also show the scent profile.
-- **Accounts:** sign up and log in. Browsing and the cart are open to everyone; paying needs an account.
+- **Accounts:** sign up, log in, **reset a forgotten password** by email, and **delete the account** from the account page. Passwords must be at least 8 characters and not a common or easily guessed one.
+- **Guest checkout:** shoppers can pay without an account. They get a private tracking link (in the confirmation and the invoice email) and can create an account afterwards to keep the order in their history.
 - **Cart and wishlist saved to the account:** they follow the shopper across devices, come back after logging out and in again, and stay in sync across open tabs.
 - **Checkout:** delivery address (with state), a review step, then payment with Razorpay (UPI, cards, net banking, wallets), with a demo checkout until real keys are added.
 - **After payment:**
   - an order confirmation;
   - an emailed HTML invoice;
   - a **tracking page** with the arrival date, where the parcel is now, six progress steps, the route through each courier hub and the full scan history.
+- **Delivery check:** on product pages, a PIN code check shows the expected delivery time (live from Shiprocket when it is set up).
+- **Policy pages:** shipping, returns & refunds, privacy, terms and contact, linked from the footer and checkout.
 - **Live updates:** price, stock and visibility changes from the dashboard, and delivery updates, appear on open pages without refreshing. If the site itself is updated, open pages offer a **Refresh** button.
+- **Search engines and sharing:** every page has its own address, title, description and share preview; product pages include product data for Google; `robots.txt` and `sitemap.xml` are generated; unknown addresses return a real 404 page.
 
 ### For the admin (`/admin`)
 
@@ -83,7 +87,7 @@ Data lives in **MongoDB**. Payments go through **Razorpay**, emails through **SM
 | Email | nodemailer over SMTP (Gmail App Password) |
 | Delivery | Shiprocket API and tracking webhook |
 | Live updates | Server-Sent Events |
-| Code quality | ESLint with SonarJS, React and React Hooks rules; oxlint |
+| Code quality | ESLint with SonarJS, React, React Hooks and jsx-a11y (accessibility) rules; `node:test` tests |
 
 ---
 
@@ -130,10 +134,10 @@ Open `.env` and at least set your own admin login:
 
 ```ini
 ADMIN_EMAIL=you@example.com
-ADMIN_PASSWORD=a-strong-password
+ADMIN_PASSWORD=<at least 12 characters of your own>
 ```
 
-Everything else can stay as it is for now. See [Configuration](#configuration-env) for every setting.
+The server refuses to start while the admin password is a placeholder, shorter than 12 characters or a common password, and prints what to fix. Everything else can stay as it is for now. See [Configuration](#configuration-env) for every setting.
 
 **5. Start the site**
 
@@ -168,10 +172,12 @@ Create an account in the store, add the kit to the cart, fill in the delivery ad
 | --- | --- | --- |
 | `MONGODB_URI` | `mongodb://127.0.0.1:27017/quirkycamel` | MongoDB connection string. The database name is the path. |
 | `ADMIN_EMAIL` | `admin@example.com` | Admin login. The account is created on start, and its password is updated if you change it here (stored hashed). New-order alerts are sent here. |
-| `ADMIN_PASSWORD` | `change-me-please` | Admin password. Change it. |
+| `ADMIN_PASSWORD` | `change-me-please` | Admin password: at least 12 characters, not a common password. The server won't start with the placeholder. Changing it ends existing admin sessions. |
 | `ADMIN_NAME` | `Store Admin` | Name shown for the admin account. |
+| `PUBLIC_URL` | empty | The store's public address, e.g. `https://quirkycamel.in`. Used for links in emails (password reset, guest tracking), canonical links, share previews and the sitemap. **Required in production.** |
+| `TRUST_PROXY` | `0` | Number of reverse proxies in front of the server (e.g. `1` behind Nginx or a hosting load balancer). With `0`, `X-Forwarded-For` is ignored, so visitors can't fake their IP to get round login limits. |
 | `PORT` | `3000` | Port for the production server (`npm start`). |
-| `NODE_ENV` | — | Set to `production` when serving over HTTPS, so login cookies are marked `Secure`. |
+| `NODE_ENV` | — | Set to `production` when serving over HTTPS. Login cookies are always `Secure` except on `localhost` and local-network addresses. |
 
 ### Payments (Razorpay)
 
@@ -202,7 +208,8 @@ While `SMTP_USER` / `SMTP_PASS` are empty, every email is saved as an `.html` fi
 | `SHIPROCKET_PASSWORD` | — | Password of that API user (single-quote it). |
 | `SHIPROCKET_PICKUP_LOCATION` | `Primary` | Name of your pickup address in Shiprocket (Settings → Pickup Addresses). |
 | `SHIPROCKET_PICKUP_CITY` / `SHIPROCKET_PICKUP_STATE` | `Mumbai` / `Maharashtra` | Where parcels start, used for the route shown before the first scan and by the demo courier. |
-| `SHIPROCKET_WEBHOOK_TOKEN` | — | A long random string. Paste the same value into Shiprocket's webhook settings as the security token. |
+| `SHIPROCKET_PICKUP_PIN` | empty | PIN code of the pickup address. With it (and Shiprocket set up), the product-page PIN check shows live courier delivery times; without it, typical times are shown. |
+| `SHIPROCKET_WEBHOOK_TOKEN` | empty | At least 32 random characters (generate with `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`). Paste the same value into Shiprocket's webhook settings as the security token. The webhook stays off without it, and the server won't start in live Shiprocket mode with a short one. |
 | `SHIPROCKET_BOX_LENGTH_CM` / `_BREADTH_CM` / `_HEIGHT_CM` | `22` / `16` / `8` | Parcel size sent to Shiprocket. |
 | `SHIPROCKET_WEIGHT_PER_ITEM_KG` | `0.3` | Weight per item; a parcel is at least 0.5 kg. |
 | `SHIPROCKET_DEMO_STEP_MINUTES` | `2` | Demo courier only: minutes between simulated tracking updates. |
@@ -218,23 +225,27 @@ While `SMTP_USER` / `SMTP_PASS` are empty, every email is saved as an `.html` fi
 | `npm start` | Production server: serves `dist/` and the API on `PORT` (default 3000). Run `npm run build` first. |
 | `npm run preview` | Serves the built `dist/` with the API through Vite (a quick check of a build). |
 | `npm run mail:test` | Checks the SMTP settings and sends a test email to `ADMIN_EMAIL`. Add an address to send elsewhere: `npm run mail:test -- you@example.com`. |
-| `npm run lint` | Fast lint with oxlint. |
-| `npm run lint:sonar` | ESLint with the SonarJS rules (the open-source rule set behind SonarQube's JavaScript analysis); should report 0 problems. |
+| `npm run lint` | ESLint with the SonarJS rules (the open-source rule set behind SonarQube's JavaScript analysis), React, React Hooks and jsx-a11y accessibility rules; should report 0 problems. |
+| `npm test` | Unit tests, plus API tests against a throwaway database (`quirkycamel_apitest`, dropped afterwards; skipped if MongoDB isn't running). |
 
 ---
 
 ## Using the site
 
-### Store pages (hash routes)
+### Store pages
 
 | Address | Page |
 | --- | --- |
-| `/#top` | Home |
-| `/#shop`, `/#shop/saved` | Shop, saved items |
-| `/#product/<slug>` | Product page, e.g. `/#product/the-complete-kit`, `/#product/madam-camel` |
-| `/#<episode-id>` | Episode story, e.g. `/#trouble-in-oasis` |
-| `/#account` | Account: profile, orders, delivery status, log out (or log out everywhere) |
-| `/#track/<order-id>` | Delivery tracking for one order (linked from the order confirmation and the account page) |
+| `/` | Home (sections such as `/#kit` and `/#faq` scroll to that part) |
+| `/shop`, `/shop/saved` | Shop, saved items |
+| `/product/<slug>` | Product page, e.g. `/product/the-complete-kit`, `/product/madam-camel` |
+| `/episodes/<episode-id>` | Episode story, e.g. `/episodes/trouble-in-oasis` |
+| `/account` | Account: profile, orders, delivery status, log out (or log out everywhere), delete account |
+| `/track/<order-id>` | Delivery tracking for one order. Guests use the link with `?t=<token>` from their confirmation or email. |
+| `/reset/<token>` | Choose a new password (from the reset email; the link works once, for 1 hour) |
+| `/shipping`, `/refunds`, `/privacy`, `/terms`, `/contact` | Policy and contact pages |
+
+Old `/#product/…`-style links still work: they are redirected to the new addresses.
 
 ### Admin panel
 
@@ -300,7 +311,10 @@ NODE_ENV=production PORT=3000 npm start
 
 (Windows PowerShell: `$env:NODE_ENV='production'; $env:PORT='3000'; npm start`.)
 
-- Put the server behind HTTPS, for example with a reverse proxy such as Nginx or Caddy, or a platform that provides TLS. The login cookies are `Secure` in production.
+- Put the server behind HTTPS, for example with a reverse proxy such as Nginx or Caddy, or a platform that provides TLS. The login cookies are `Secure` in production, and HSTS is sent over HTTPS.
+- Set `PUBLIC_URL` to the live address, and `TRUST_PROXY` to the number of proxies in front of the server.
+- Before launch, fill in the business details in `src/data/business.js` (legal name, address, phone, GSTIN, grievance officer) and review the policy texts in `src/data/policies.js`.
+- The production server compresses responses (Brotli/gzip), caches built assets for a year (their names change with each build) and renders each page's title, description and share tags on the server.
 - Keep `.env` on the server only. Back up MongoDB and the `uploads/` folder, which holds product images added from the dashboard.
 - Live updates (Server-Sent Events) and the delivery sync run in the server process. If you run several server instances, they need a shared message bus to see each other's events.
 
@@ -312,9 +326,13 @@ NODE_ENV=production PORT=3000 npm start
 - **Accounts and sessions** (`server/auth.js`, `server/sessions.js`):
   - Passwords are hashed with scrypt.
   - The store and the admin panel use separate sessions: the cookies are `qc_session` (30 days) and `qc_admin_session` (sent only to `/api/admin`, `SameSite=Strict`, ending after 30 minutes idle or 8 hours at most).
-  - Session tokens are random and stored only as hashes.
-  - Logins are rate-limited, and every login, logout and failed attempt is recorded.
-- **Payments** (`server/razorpay.js`): the server prices the cart from the database, creates the Razorpay order, and verifies the payment signature. Then, after payment:
+  - Session tokens are random and stored only as hashes. Store sessions also end after 7 days without activity.
+  - Logins are rate-limited per email + IP, per email and per IP; sign-ups, password-reset emails, guest orders and delivery checks are limited too. Every login, logout and failed attempt is recorded.
+  - Password resets use single-use, 1-hour tokens stored as hashes; "forgot password" gives the same answer whether or not the email has an account. A reset ends every store session for that account.
+  - Deleting an account removes the user, their sessions and saved items; their orders are kept for the store's records, marked as from a deleted account.
+- **Security headers** (`server/http.js`): a Content Security Policy on pages, plus `nosniff`, frame blocking, a strict referrer policy and HSTS over HTTPS. Malformed URLs get a 400 instead of an error.
+- **Pages for search engines** (`server/pages.js`, `src/lib/routes.js`): store and server share one route table. The server fills in each page's title, description, canonical link, share tags and product data, embeds the catalog so pages render without waiting for the API, and answers unknown addresses with a 404.
+- **Payments** (`server/razorpay.js`): the server prices the cart from the database, creates the Razorpay order, and verifies the payment signature. Guest orders get a random tracking token, of which only a hash is stored (`server/guestOrders.js`). Then, after payment:
   - stock goes down;
   - the bought items leave the saved cart;
   - emails are sent;
@@ -340,7 +358,8 @@ NODE_ENV=production PORT=3000 npm start
 | `sessions` | signed-in browser | hashed token, user, area (`store` / `admin`), created / last seen / expiry, IP, device. Expired sessions are removed automatically. |
 | `logins` | login event | sign-up / login / failed / logout, area, email, IP, device, time |
 | `products` | product | name, type (`kit` / `fragrance` / `product`), texts, price, MRP, stock (empty = unlimited), visibility, image, what's inside, specifications, pack options, scent profile |
-| `orders` | order | user, items with prices, amount (in paise), status, payment mode and ids, delivery address, email results, **delivery summary** |
+| `orders` | order | user (or `guest: true` with a hashed tracking token), items with prices, amount (in paise), status, payment mode and ids, delivery address, email results, **delivery summary** |
+| `passwordResets` | reset request | hashed token, user, expiry (removed automatically after 1 hour) |
 | `shipments` | paid order | user, email, mode (`shiprocket` / `demo`), courier, AWB, Shiprocket ids, status, step, arrival date, pickup date, origin, destination and **every tracking scan** |
 
 Indexes are created automatically on the first connection (`server/db.js`).
@@ -361,6 +380,9 @@ All endpoints are under `/api` and exchange JSON. Requests that change data must
 | POST | `/api/auth/login` | `{ email, password }` |
 | POST | `/api/auth/logout` | |
 | POST | `/api/auth/logout-all` | (login) end the user's store sessions on every device |
+| POST | `/api/auth/forgot` | `{ email }`; emails a reset link if the account exists (same answer either way) |
+| POST | `/api/auth/reset` | `{ token, password }` |
+| DELETE | `/api/auth/account` | (login) `{ password }`; deletes the account |
 | GET | `/api/account/saved` | (login) saved cart and wishlist |
 | POST | `/api/account/saved/merge` | (login) add guest picks on login |
 | PUT | `/api/account/cart/:slug` | (login) `{ qty }`; 0 removes the item |
@@ -369,11 +391,14 @@ All endpoints are under `/api` and exchange JSON. Requests that change data must
 | GET | `/api/products` | visible products |
 | GET | `/api/version` | changes when the server restarts with new code |
 | GET | `/api/razorpay/config` | |
-| POST | `/api/razorpay/order` | (login) `{ items: [{ slug, qty }], customer }` |
-| POST | `/api/razorpay/verify` | (login) Razorpay's payment response |
-| POST | `/api/orders/demo` | (login) demo order, only while Razorpay keys are placeholders |
+| POST | `/api/razorpay/order` | `{ items: [{ slug, qty }], customer }`; guests included |
+| POST | `/api/razorpay/verify` | Razorpay's payment response; returns `guestToken` for guest orders |
+| POST | `/api/orders/demo` | demo order, only while Razorpay keys are placeholders |
 | GET | `/api/orders` | (login) the user's orders, with delivery summaries |
-| GET | `/api/orders/:id/tracking` | (login) full tracking for one of the user's orders |
+| GET | `/api/orders/:id/tracking?t=` | full tracking for one order: the owner's, or a guest's with its token |
+| POST | `/api/orders/claim` | (login) `{ orderId, token }`; adds a guest order to the account |
+| GET | `/api/delivery/estimate?pin=` | delivery time for a PIN code |
+| GET | `/robots.txt`, `/sitemap.xml` | generated from the catalog |
 | POST | `/api/delivery/updates` | Shiprocket webhook (`x-api-key` = `SHIPROCKET_WEBHOOK_TOKEN`) |
 
 </details>
@@ -413,9 +438,13 @@ The same list, with short notes, is at the top of `server/api.js`.
 index.html                 store entry            admin/index.html   admin panel entry (/admin)
 vite.config.js             dev server: mounts the API, builds both apps
 server/                    Node API
-  index.js                   production server (dist/ + API)
+  index.js                   production server (dist/ + API, compression, caching)
+  pages.js                   per-page titles, share tags, product data, robots.txt, sitemap
   api.js                     all routes
   auth.js, sessions.js       accounts, login/logout, separate store/admin sessions
+  account.js                 password reset and account deletion
+  config.js, passwordPolicy.js, rateLimit.js   startup checks, password rules, limits
+  guestOrders.js             guest order tracking tokens
   db.js                      MongoDB connection, indexes, first-run seeding
   products.js                catalog, dashboard edits, image uploads
   savedItems.js              cart + wishlist on the user record
@@ -426,11 +455,13 @@ server/                    Node API
   delivery/                  Shiprocket client, shipments, status mapping, demo courier
   env.js, http.js, passwords.js
 scripts/test-mail.mjs      npm run mail:test
+tests/                     npm test (unit + API tests)
 src/
   main.jsx, App.jsx        store entry and shell
   hooks/                   router, catalog, cart, saved items, account sync, auth,
                            checkout, live updates, version check, toast
-  pages/                   Home, Shop, Product, Episode, Account, Tracking
+  pages/                   Home, Shop, Product, Episode, Account, Tracking, policy pages,
+                           password reset, 404
   components/
     layout/                  Navbar, Footer, StickyBuyBar, Toast, UpdateBanner
     home/                    hero and home-page sections
@@ -441,8 +472,10 @@ src/
     auth/                    login / sign-up modal
     delivery/                tracking view (shared with the admin panel)
   admin/                   admin panel: login, dashboard, sections/, components/, utils/
-  lib/                     API client, catalog, Razorpay loader, PropTypes shapes, storage
-  data/                    episode copy, built-in products, Indian states
+  lib/                     API client, catalog, routes, page titles, Razorpay loader,
+                           PropTypes shapes, storage
+  data/                    episode copy, built-in products, Indian states, business details,
+                           policy texts
   styles/                  store styles (store/*.css), shop, auth, admin, delivery
 outbox/                    emails saved while SMTP isn't set up (git-ignored)
 uploads/                   product images uploaded in the dashboard (git-ignored)
@@ -452,8 +485,8 @@ uploads/                   product images uploaded in the dashboard (git-ignored
 
 ## Code quality
 
-- `npm run lint:sonar`: ESLint with `eslint-plugin-sonarjs` (recommended rules), React and React Hooks rules. The codebase reports **0 problems**.
-- `npm run lint`: oxlint, for a fast extra check.
+- `npm run lint`: ESLint with `eslint-plugin-sonarjs` (recommended rules), React, React Hooks and `jsx-a11y` rules. Browser code and server code are checked with their own globals. The codebase reports **0 problems**.
+- `npm test`: unit tests for the password policy, startup checks, rate limits, routes and delivery statuses, and API tests for malformed URLs, login limits, the cart, the delivery webhook, guest tracking and the live-update limits.
 - `sonar-project.properties` is ready for a SonarQube or SonarCloud scan with `sonar-scanner`.
 - React components declare their props with PropTypes. Shared shapes are in `src/lib/propShapes.js` (store), `src/admin/utils/shapes.js` (admin) and `src/components/delivery/shapes.js`.
 
@@ -467,6 +500,8 @@ uploads/                   product images uploaded in the dashboard (git-ignored
 | A page looks out of date, or checkout says "Please choose the delivery state." | The page was opened before an update. Click **Refresh** on the update notice, or press Ctrl + Shift + R. |
 | Emails aren't arriving | Run `npm run mail:test`; it explains the error. Use port 587 and a Gmail **App Password**. Until SMTP works, emails are in `outbox/`. Failed sends can be resent from Admin → Orders. |
 | Admin login doesn't work | Use exactly `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` and restart after changing them. After 8 failed attempts, wait 15 minutes. |
+| "Refusing to start until .env is fixed" | The message lists what to change: usually a placeholder or short `ADMIN_PASSWORD`, or a `SHIPROCKET_WEBHOOK_TOKEN` under 32 characters. |
+| Password-reset or tracking links in emails are missing | Set `PUBLIC_URL`. |
 | Deliveries stay on the demo courier | Set `SHIPROCKET_EMAIL` and `SHIPROCKET_PASSWORD`, then restart. Admin → Deliveries shows the current mode. |
 | Shiprocket says the pickup location is invalid | `SHIPROCKET_PICKUP_LOCATION` must match a pickup address name in Shiprocket exactly. |
 | A password with `$` or `#` doesn't work | Wrap it in single quotes in `.env`. |

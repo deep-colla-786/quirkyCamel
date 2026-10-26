@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { adminApi } from '../../lib/api';
 import { fmtDateTime } from '../utils/format';
+import LoadError from '../components/LoadError';
 
 const LOGIN_TYPES = { login: ['ok', 'Login'], signup: ['info', 'Sign-up'], failed: ['bad', 'Failed login'], logout: ['muted', 'Logout'] };
 const AREA_LABELS = { store: 'Store', admin: 'Admin' };
@@ -17,10 +18,18 @@ EventBadge.propTypes = { type: PropTypes.string.isRequired };
 export default function Logins() {
   const [rows, setRows] = useState(null);
   const [type, setType] = useState('all');
-  useEffect(() => {
-    adminApi.logins().then((res) => res.ok && setRows(res.data.logins));
+  const [error, setError] = useState('');
+  const load = useCallback(async () => {
+    setError('');
+    const res = await adminApi.logins();
+    if (res.ok) setRows(res.data.logins);
+    else if (res.status !== 401) setError(res.data.error || 'Couldn’t load login activity.');
   }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
+  if (error) return <LoadError message={error} onRetry={load} />;
   if (!rows) return <p className="ad-muted">Loading…</p>;
   const list = type === 'all' ? rows : rows.filter((r) => r.type === type);
 

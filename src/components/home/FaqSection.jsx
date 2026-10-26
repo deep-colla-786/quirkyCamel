@@ -5,7 +5,8 @@ import { FAQS } from '../../data/episodes';
 
 export default function FaqSection({ onSpinClick, onShopKit }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [openIndex, setOpenIndex] = useState(0);
+  // The open answer is tracked by its question, so filtering doesn't open a different one.
+  const [openQuestion, setOpenQuestion] = useState(FAQS[0]?.q ?? null);
 
   const filteredFaqs = FAQS.filter(
     (item) =>
@@ -15,8 +16,8 @@ export default function FaqSection({ onSpinClick, onShopKit }) {
 
   const colors = ['var(--purple)', 'var(--orange)', 'var(--blue)', 'var(--lime)'];
 
-  const toggleFaq = (index) => {
-    setOpenIndex((prev) => (prev === index ? -1 : index));
+  const toggleFaq = (question) => {
+    setOpenQuestion((prev) => (prev === question ? null : question));
   };
 
   return (
@@ -34,7 +35,8 @@ export default function FaqSection({ onSpinClick, onShopKit }) {
           </p>
 
           <label className="qsearch" htmlFor="qSearch">
-            <Search size={18} color="var(--muted)" />
+            <span className="sr">Search the questions</span>
+            <Search size={18} color="var(--muted)" aria-hidden="true" />
             <input
               id="qSearch"
               type="search"
@@ -65,13 +67,13 @@ export default function FaqSection({ onSpinClick, onShopKit }) {
             {filteredFaqs.map((faq, idx) => {
               const bg = colors[idx % 4];
               const fg = idx % 4 === 1 || idx % 4 === 3 ? 'var(--ink)' : 'var(--white)';
-              const isOpen = openIndex === idx;
+              const isOpen = openQuestion === faq.q;
 
               return (
                 <div key={faq.q} className={`qa-item ${isOpen ? 'open' : ''}`}>
                   <button
                     className="qa-summary"
-                    onClick={() => toggleFaq(idx)}
+                    onClick={() => toggleFaq(faq.q)}
                     aria-expanded={isOpen}
                   >
                     <span className="qi" style={{ background: bg, color: fg }}>

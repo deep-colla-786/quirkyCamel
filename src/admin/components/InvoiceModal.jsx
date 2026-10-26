@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 import { adminApi } from '../../lib/api';
+import useDialog from '../../hooks/useDialog';
 
 // Shows an order's invoice exactly as it was emailed to the customer. The HTML is
 // rendered in a sandboxed frame, so it can't run scripts or touch the dashboard.
@@ -22,18 +23,14 @@ export default function InvoiceModal({ order, onClose }) {
     };
   }, [order.id]);
 
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    globalThis.addEventListener('keydown', onKey);
-    return () => globalThis.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // Escape closes, focus starts on the close button, stays inside and returns on close.
+  const dialogRef = useDialog(true, onClose, { initialFocus: closeRef });
 
   const title = `Invoice ${invoice?.invoiceNumber || order.invoice || ''}`.trim();
 
   return (
-    <div className="ad-modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ad-modal ad-invoice-modal" role="dialog" aria-modal="true" aria-labelledby="inv-title">
+    <div className="ad-modal-scrim" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={dialogRef} className="ad-modal ad-invoice-modal" role="dialog" aria-modal="true" aria-labelledby="inv-title">
         <header>
           <div>
             <h2 id="inv-title">{title}</h2>

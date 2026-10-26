@@ -122,7 +122,8 @@ button.account-btn {
   font-size: 14px;
   color: var(--muted);
 }
-.auth-tabs button[aria-selected='true'] {
+.auth-tabs button[aria-selected='true'],
+.auth-tabs button[aria-pressed='true'] {
   background: var(--white);
   color: var(--blue-ink);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -344,4 +345,83 @@ button.account-btn {
   .account-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+@media (pointer: coarse) {
+  .auth-close {
+    width: 44px;
+    height: 44px;
+    right: 11px;
+    top: 11px;
+  }
+}
+
+/* Forgot password, privacy notice, guest checkout */
+.auth-forgot {
+  justify-self: end;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--blue);
+  text-decoration: underline;
+  min-height: 32px;
+}
+.auth-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #e9f5dc;
+  color: #2d5600;
+  font-size: 13.5px;
+}
+.auth-privacy {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.auth-privacy a {
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.auth-guest {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Delete account */
+.account-delete-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a1281f;
+}
+.account-delete {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #ececec;
+  display: grid;
+  gap: 10px;
+}
+.account-delete p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.account-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn.danger {
+  background: #a1281f;
+  color: #fff;
+  box-shadow: 0 4px 0 #6e1a14;
 }

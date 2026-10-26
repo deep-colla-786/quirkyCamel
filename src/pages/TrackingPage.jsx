@@ -5,29 +5,38 @@ import { formatINR } from '../data/episodes';
 import TrackingDetails from '../components/delivery/TrackingDetails';
 import { userShape } from '../lib/propShapes';
 
-// #track/<order-id>: where the customer's parcel is, when it arrives, and every step so
-// far. Refreshes live when the courier sends an update (refreshKey changes).
+const GUEST_POLL_MS = 60 * 1000;
+
+// /track/<order-id>: where the customer's parcel is, when it arrives, and every step so
+// far. Signed-in customers get live updates (refreshKey changes); a guest's link carries
+// the order's private token (?t=…) and the page checks for updates every minute.
 export default function TrackingPage({ orderId, user, authChecked, onLogin, refreshKey }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [guestToken] = useState(() => new URLSearchParams(globalThis.location.search).get('t'));
+  const canLoad = Boolean(user || guestToken);
 
   useEffect(() => {
-    if (!user) return;
+    if (!canLoad) return;
     let cancelled = false;
-    ordersApi.tracking(orderId).then((res) => {
-      if (cancelled) return;
-      if (res.ok) {
-        setData(res.data);
-        setError('');
-      } else setError(res.data.error || 'Could not load tracking for this order.');
-    });
+    const load = () =>
+      ordersApi.tracking(orderId, guestToken).then((res) => {
+        if (cancelled) return;
+        if (res.ok) {
+          setData(res.data);
+          setError('');
+        } else setError(res.data.error || 'Could not load tracking for this order.');
+      });
+    load();
+    const timer = user ? null : setInterval(load, GUEST_POLL_MS);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
-  }, [orderId, user, refreshKey]);
+  }, [orderId, user, canLoad, guestToken, refreshKey]);
 
   let body;
-  if (!user) {
+  if (!canLoad) {
     body = authChecked ? (
       <div className="track-empty">
         <p>Log in to see where your order is.</p>
@@ -57,9 +66,9 @@ export default function TrackingPage({ orderId, user, authChecked, onLogin, refr
     <div className="track-page">
       <div className="wrap">
         <nav className="crumbs" aria-label="Breadcrumb">
-          <a href="#top">Home</a>
+          <a href="/">Home</a>
           <span>/</span>
-          <a href="#account">Account</a>
+          <a href="/account">Account</a>
           <span>/</span>
           <span aria-current="page">Track order</span>
         </nav>

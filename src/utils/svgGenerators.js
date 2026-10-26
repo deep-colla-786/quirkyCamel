@@ -10,10 +10,46 @@ export const CAMEL_ICON_PNG = camelIconUrl;
 export const CAMEL_MASCOT_WEBP = camelMascotUrl;
 export const LOGO_PNG = logoUrl;
 
-let uidN = 0;
+// Escapes text for use inside SVG markup (element text and quoted attribute values).
+const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
+
+// Deterministic ids. Every top-level drawing runs inside an id context: ids are
+// `<namespace>-<letter><n>`, counted from zero per drawing, so the same input always
+// produces the same string (React can skip the DOM update) and two drawings on one
+// page only clash if they are given the same namespace. Nested drawings (a scene
+// inside a sachet inside the kit) share their parent's context and counter.
+let idCtx = null;
+const nextId = (letter) => {
+  if (!idCtx) idCtx = { ns: 'qc', n: 0 }; // bare camel() call outside a drawing
+  idCtx.n += 1;
+  return `${idCtx.ns}-${letter}${idCtx.n}`;
+};
+const markupCache = new Map();
+const MAX_CACHE = 400;
+
+// Builds (or returns the cached) markup for `key`, with ids namespaced by `ns`.
+export function svgMarkup(key, ns, build) {
+  if (idCtx) return build(); // nested: reuse the parent drawing's ids
+  const cacheKey = `${ns}|${key}`;
+  const hit = markupCache.get(cacheKey);
+  if (hit !== undefined) return hit;
+  idCtx = { ns: String(ns).replace(/[^\w-]/g, '_'), n: 0 };
+  let out;
+  try {
+    out = build();
+  } finally {
+    idCtx = null;
+  }
+  if (markupCache.size >= MAX_CACHE) markupCache.clear();
+  markupCache.set(cacheKey, out);
+  return out;
+}
+
+const epKey = (e) => JSON.stringify([e.id, e.n, e.name, e.lines, e.pal]);
 
 export function camel(x, y, w, color, extra = '', flip = false) {
-  const u = 'm' + (++uidN);
+  const u = nextId('m');
   const s = w / 366;
   const tf = flip
     ? `translate(${x + w} ${y}) scale(${-s} ${s})`
@@ -28,12 +64,12 @@ const animT = (type, vals, dur, extra = '') =>
   `<animateTransform attributeName="transform" type="${type}" values="${vals}" dur="${dur}s" repeatCount="indefinite" ${extra}/>`;
 
 export function wrapSVG(content, label) {
-  return `<svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">${content}</svg>`;
+  return `<svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(label)}">${content}</svg>`;
 }
 
-export const SCENES = {
+const SCENE_BUILDERS = {
   'trouble-in-oasis'() {
-    const u = 'o' + (++uidN);
+    const u = nextId('o');
     const ripples = L(26, `<g opacity=".45" stroke="#fff" stroke-width="2" fill="none"><path d="M20 130 q20 -8 40 0 t40 0">${animT('translate', '0 0;0 -6;0 0', 3)}</path><path d="M300 150 q20 -8 40 0 t40 0">${animT('translate', '0 0;0 -6;0 0', 3.6)}</path></g>`);
     return wrapSVG(
       `<defs><linearGradient id="${u}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3a3"/><stop offset="1" stop-color="#ffb35a"/></linearGradient>
@@ -55,7 +91,7 @@ export const SCENES = {
     );
   },
   'camel-after-dark'() {
-    const u = 'd' + (++uidN);
+    const u = nextId('d');
     let stars = '';
     for (let i = 0; i < 26; i++) {
       const x = (i * 73) % 480,
@@ -92,7 +128,7 @@ export const SCENES = {
     );
   },
   'madam-camel'() {
-    const u = 's' + (++uidN);
+    const u = nextId('s');
     let tiles = '';
     for (let x = 0; x < 480; x += 40) tiles += `<line x1="${x}" y1="0" x2="${x}" y2="360" stroke="#fff" stroke-width="2" opacity=".7"/>`;
     for (let y = 0; y < 360; y += 40) tiles += `<line x1="0" y1="${y}" x2="480" y2="${y}" stroke="#fff" stroke-width="2" opacity=".7"/>`;
@@ -121,7 +157,7 @@ export const SCENES = {
     );
   },
   'mirage'() {
-    const u = 'r' + (++uidN);
+    const u = nextId('r');
     const sunHat = `<ellipse cx="60" cy="6" rx="62" ry="14" fill="#fff6e0"/><path d="M28 4 q32 -46 66 0z" fill="#fff6e0"/><path d="M28 2 q34 8 66 0" stroke="#ff4f6d" stroke-width="7" fill="none"/>`;
     const bubbles = [[40, 180, 14], [440, 200, 10], [110, 320, 9], [420, 300, 16]]
       .map(([x, y, r], i) => {
@@ -150,7 +186,7 @@ export const SCENES = {
     );
   },
   'fruitto-del-deserto'() {
-    const u = 'f' + (++uidN);
+    const u = nextId('f');
     const date = (x, y, r, rot) =>
       `<g transform="translate(${x} ${y}) rotate(${rot})"><ellipse rx="${r * 1.5}" ry="${r}" fill="#5a2210"/><ellipse rx="${r * 1.5}" ry="${r}" fill="none" stroke="#3a1408" stroke-width="2"/><path d="M${-r} ${-r * .3} q${r} ${-r * .4} ${r * 2} 0" stroke="#8a3d1c" stroke-width="${r * .25}" fill="none" stroke-linecap="round"/><ellipse cx="${-r * .5}" cy="${-r * .4}" rx="${r * .4}" ry="${r * .18}" fill="#c06a3c" opacity=".8"/></g>`;
     const figSeeds = () =>
@@ -178,7 +214,7 @@ export const SCENES = {
     );
   },
   'oud-but-different'() {
-    const u = 'w' + (++uidN);
+    const u = nextId('w');
     let petals = '';
     for (let i = 0; i < 14; i++) {
       const x = (i * 67) % 470;
@@ -202,9 +238,22 @@ export const SCENES = {
   }
 };
 
-export function sachetSVG(e, o = {}) {
-  const u = 'q' + (++uidN),
-    p = e.pal;
+// SCENES[id](ns?) returns the cached scene markup; pass a distinct `ns` when the same
+// scene is shown more than once on a page.
+export const SCENES = Object.fromEntries(
+  Object.entries(SCENE_BUILDERS).map(([id, build]) => [id, (ns = `qs-${id}`) => svgMarkup(`scene|${id}`, ns, build)])
+);
+
+export function sachetSVG(e, o = {}, ns = `qq-${e.id}`) {
+  return svgMarkup(`sachet|${epKey(e)}|${JSON.stringify(o)}`, ns, () => buildSachet(e, o));
+}
+
+// Palette colours are interpolated into attributes, so escape them once up front.
+const escPal = (pal = {}) => Object.fromEntries(Object.entries(pal).map(([k, v]) => [k, esc(v)]));
+
+function buildSachet(e, o) {
+  const u = nextId('q'),
+    p = escPal(e.pal);
   const pos = o.w ? `x="${o.x || 0}" y="${o.y || 0}" width="${o.w}" height="${o.w * 1.5}"` : '';
   let zt = 'M0 30 L0 5',
     zb = 'M0 270 L200 270 L200 295';
@@ -222,10 +271,10 @@ export function sachetSVG(e, o = {}) {
       (l, i) =>
         `<text x="100" y="${ys[i]}" text-anchor="middle" font-family="Bagel Fat One, Arial Rounded MT Bold, sans-serif" font-size="20" fill="${p.title}" ${
           l.length > 9 ? 'textLength="166" lengthAdjust="spacingAndGlyphs"' : ''
-        }>${l}</text>`
+        }>${esc(l)}</text>`
     )
     .join('');
-  return `<svg class="sachet" ${pos} viewBox="0 0 200 300" overflow="visible" role="img" aria-label="${e.name} attar sachet">
+  return `<svg class="sachet" ${pos} viewBox="0 0 200 300" overflow="visible" role="img" aria-label="${esc(e.name)} attar sachet">
    <defs><clipPath id="${u}c"><rect x="18" y="58" width="164" height="123" rx="12"/></clipPath><linearGradient id="${u}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
    <g class="body">
      <rect x="0" y="44" width="200" height="228" fill="${p.bg}"/><rect x="0" y="44" width="200" height="228" fill="url(#${u}g)"/>
@@ -233,7 +282,7 @@ export function sachetSVG(e, o = {}) {
      <line x1="10" y1="45" x2="190" y2="45" stroke="${p.ink}" stroke-opacity=".55" stroke-width="1.4" stroke-dasharray="4 3"/>
      <g clip-path="url(#${u}c)"><rect x="18" y="58" width="164" height="123" fill="${p.soft}"/>${sc}</g>
      <rect x="18" y="58" width="164" height="123" rx="12" fill="none" stroke="${p.soft}" stroke-width="3"/>
-     <text x="100" y="196" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="8.5" letter-spacing="2.4" fill="${p.ink}" opacity=".9">EPISODE 0${e.n} · ATTAR SACHET</text>
+     <text x="100" y="196" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="8.5" letter-spacing="2.4" fill="${p.ink}" opacity=".9">EPISODE 0${esc(e.n)} · ATTAR SACHET</text>
      ${txt}
      <text x="100" y="260" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="7.5" letter-spacing="2.2" fill="${p.ink}" opacity=".8">QUIRKY CAMEL</text>
    </g>
@@ -244,8 +293,12 @@ export function sachetSVG(e, o = {}) {
    </g></svg>`;
 }
 
-export function sachetBackSVG(e) {
-  const p = e.pal;
+export function sachetBackSVG(e, ns = `qb-${e.id}`) {
+  return svgMarkup(`back|${epKey(e)}`, ns, () => buildSachetBack(e));
+}
+
+function buildSachetBack(e) {
+  const p = escPal(e.pal);
   let zt = 'M0 30 L0 5',
     zb = 'M0 270 L200 270 L200 295';
   for (let i = 0; i <= 25; i++) zt += ` L${i * 8} ${i % 2 ? 0 : 5}`;
@@ -253,8 +306,8 @@ export function sachetBackSVG(e) {
   for (let i = 25; i >= 0; i--) zb += ` L${i * 8} ${i % 2 ? 300 : 295}`;
   zb += ' Z';
   const row = (y, n, t) =>
-    `<circle cx="34" cy="${y}" r="11" fill="${p.btnBg}"/><text x="34" y="${y + 4}" text-anchor="middle" font-family="Bagel Fat One, sans-serif" font-size="12" fill="${p.btnInk}">${n}</text><text x="52" y="${y + 4}" font-family="Lexend, sans-serif" font-weight="600" font-size="10" fill="${p.ink}">${t}</text>`;
-  return `<svg viewBox="0 0 200 300" overflow="visible" role="img" aria-label="Back of the ${e.name} sachet">
+    `<circle cx="34" cy="${y}" r="11" fill="${p.btnBg}"/><text x="34" y="${y + 4}" text-anchor="middle" font-family="Bagel Fat One, sans-serif" font-size="12" fill="${p.btnInk}">${n}</text><text x="52" y="${y + 4}" font-family="Lexend, sans-serif" font-weight="600" font-size="10" fill="${p.ink}">${esc(t)}</text>`;
+  return `<svg viewBox="0 0 200 300" overflow="visible" role="img" aria-label="Back of the ${esc(e.name)} sachet">
    <rect x="0" y="29" width="200" height="243" fill="${p.bg}"/><path d="${zt}" fill="${p.bg}"/><path d="${zt}" fill="#000" opacity=".16"/><path d="${zb}" fill="${p.bg}"/><path d="${zb}" fill="#000" opacity=".16"/>
    ${camel(62, 50, 76, p.title)}
    <text x="100" y="134" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="8.5" letter-spacing="2.4" fill="${p.ink}">HOW TO WEAR</text>
@@ -263,7 +316,11 @@ export function sachetBackSVG(e) {
   </svg>`;
 }
 
-export function kitSVG(episodes = []) {
+export function kitSVG(episodes = [], ns = 'qk') {
+  return svgMarkup(`kit|${episodes.map(epKey).join(',')}`, ns, () => buildKit(episodes));
+}
+
+function buildKit(episodes) {
   const list = episodes.length === 6 ? episodes : [
     { id: 'trouble-in-oasis', n: 1, name: 'Trouble in Oasis', lines: ['TROUBLE IN', 'OASIS'], pal: { bg: '#e8892c', title: '#ffffff', ink: '#fff8ec', deep: '#6b3608', soft: '#ffe9c7' } },
     { id: 'camel-after-dark', n: 2, name: 'Camel After Dark', lines: ['CAMEL', 'AFTER DARK'], pal: { bg: '#141a4d', title: '#C4E539', ink: '#f1ecff', deep: '#2b0f5c', soft: '#e7dcff' } },

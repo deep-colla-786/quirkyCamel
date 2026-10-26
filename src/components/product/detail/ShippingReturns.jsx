@@ -1,6 +1,7 @@
 import React from 'react';
 import { Truck, ShieldCheck, Package } from 'lucide-react';
 import { STORE_POLICY } from '../../../data/products';
+import { paths } from '../../../lib/routes';
 
 const ShippingReturns = () => (
   <dl className="pd-policy">
@@ -17,7 +18,9 @@ const ShippingReturns = () => (
     </div>
     <div>
       <dt><Package size={18} /> Returns</dt>
-      <dd>{STORE_POLICY.returns}</dd>
+      <dd>
+        {STORE_POLICY.returns} <a href={paths.contact}>Contact us</a>
+      </dd>
     </div>
   </dl>
 );

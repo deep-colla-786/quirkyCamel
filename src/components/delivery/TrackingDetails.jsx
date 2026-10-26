@@ -6,6 +6,7 @@ import RouteView from './RouteView';
 import ScanTimeline from './ScanTimeline';
 import { arrivalText, fmtWhen, placeName } from './deliveryFormat';
 import { shipmentShape } from './shapes';
+import { paths } from '../../lib/routes';
 
 function ProblemNote({ shipment }) {
   if (shipment.state === 'active' || shipment.state === 'delivered') return null;
@@ -13,7 +14,11 @@ function ProblemNote({ shipment }) {
     exception: shipment.awb
       ? 'The courier reported a problem with this delivery. We’re on it and will update you here.'
       : 'We couldn’t book the courier for this order yet. We’ll try again shortly.',
-    cancelled: 'This shipment was cancelled. If you didn’t expect this, please contact us.',
+    cancelled: (
+      <>
+        This shipment was cancelled. If you didn’t expect this, please <a href={paths.contact}>contact us</a>.
+      </>
+    ),
     returned: 'This shipment is on its way back to us. We’ll get in touch about a re-delivery or refund.'
   }[shipment.state];
   return (

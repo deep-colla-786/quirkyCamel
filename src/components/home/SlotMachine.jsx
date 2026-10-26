@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { EPISODES } from '../../data/episodes';
 import { SCENES } from '../../utils/svgGenerators';
+import useOffscreenPause from '../../hooks/useOffscreenPause';
 
 export default function SlotMachine({ onSelectEpisode }) {
+  const pauseRef = useRef(null);
+  useOffscreenPause(pauseRef); // pause its animations while scrolled away
+
   const [spinning, setSpinning] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
@@ -44,7 +48,7 @@ export default function SlotMachine({ onSelectEpisode }) {
   const currentEp = EPISODES[currentIndex];
 
   return (
-    <section className="band spin squig">
+    <section className="band spin squig" ref={pauseRef}>
       <div className="wrap">
         <div>
           <span className="eyebrow" style={{ color: 'var(--lime)' }}>
@@ -73,7 +77,7 @@ export default function SlotMachine({ onSelectEpisode }) {
         <div className={`reel ${leverPulled ? 'pull' : ''}`} id="reel">
           <div
             className="win"
-            dangerouslySetInnerHTML={{ __html: SCENES[currentEp.id]() }}
+            dangerouslySetInnerHTML={{ __html: SCENES[currentEp.id](`slot-${currentEp.id}`) }}
           />
           <div className={`flash ${flashing ? 'flash-active' : ''}`} />
 

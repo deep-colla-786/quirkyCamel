@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { EPISODES, ROUTES, OCC_LABELS } from '../../data/episodes';
 import { SCENES, sachetSVG } from '../../utils/svgGenerators';
+import useOffscreenPause from '../../hooks/useOffscreenPause';
 
 export default function DiscoverySection({ onSelectEpisode }) {
+  const pauseRef = useRef(null);
+  useOffscreenPause(pauseRef); // pause its animations while scrolled away
+
   const [activeRoute, setActiveRoute] = useState('mood');
   const [selectedChip, setSelectedChip] = useState(null);
 
@@ -28,16 +32,8 @@ export default function DiscoverySection({ onSelectEpisode }) {
   const filteredList = getFilteredEpisodes();
   const matchCount = filteredList.filter((item) => item.matches).length;
 
-  let note = '';
-  if (activeRoute === 'scent') {
-    note = 'Camel After Dark joins this filter once its final notes are confirmed.';
-  }
-  if (activeRoute === 'occ') {
-    note = 'No episode is tailored for conservative office wear yet.';
-  }
-
   return (
-    <section className="band episodes squig" id="episodes">
+    <section className="band episodes squig" id="episodes" ref={pauseRef}>
       <div className="wrap">
         <div className="sec-head">
           <div>
@@ -49,19 +45,18 @@ export default function DiscoverySection({ onSelectEpisode }) {
               <span className="w">One</span> <span className="w">strange</span> <span className="w">world.</span>
             </h2>
             <p>
-              Same camel, different situation, one sachet each. Read the mood before the notes, and find the episode that sounds like your day.
+              Six camels, six situations, one sachet each. Read the mood before the notes, and find the episode that sounds like your day.
             </p>
           </div>
         </div>
 
         <div className="discover" id="discover" role="region" aria-label="Discover the collection">
-          <div className="tabs" role="tablist">
+          <div className="tabs" role="group" aria-label="Browse by">
             {Object.entries(ROUTES).map(([key, r]) => (
               <button
                 key={key}
                 className="tab"
-                role="tab"
-                aria-selected={activeRoute === key}
+                aria-pressed={activeRoute === key}
                 onClick={() => handleTabChange(key)}
               >
                 {r.label}
@@ -72,6 +67,8 @@ export default function DiscoverySection({ onSelectEpisode }) {
           <div className="chips" role="group" aria-label={routeConfig.label}>
             {routeConfig.opts.map(([k, label]) => {
               const count = EPISODES.filter((e) => e.f[activeRoute]?.includes(k)).length;
+              // Options no episode matches yet (e.g. Office) stay hidden.
+              if (count === 0) return null;
               return (
                 <button
                   key={k}
@@ -91,7 +88,6 @@ export default function DiscoverySection({ onSelectEpisode }) {
             <span id="discCount">
               <b>{matchCount} of 6</b> episodes {selectedChip ? 'match' : 'showing'}
             </span>
-            {note && <span className="disc-note">{note}</span>}
             {selectedChip && (
               <button className="clear-filter" onClick={() => setSelectedChip(null)}>
                 Clear filter
@@ -124,13 +120,13 @@ export default function DiscoverySection({ onSelectEpisode }) {
                 }}
               >
                 <div className="scene">
-                  <div dangerouslySetInnerHTML={{ __html: SCENES[ep.id]() }} />
+                  <div dangerouslySetInnerHTML={{ __html: SCENES[ep.id](`disc-${ep.id}`) }} />
                   <span className="num">EPISODE 0{ep.n}</span>
                   <span className="inkit">IN THE KIT</span>
                   <span
                     className="peek"
                     aria-hidden="true"
-                    dangerouslySetInnerHTML={{ __html: sachetSVG(ep) }}
+                    dangerouslySetInnerHTML={{ __html: sachetSVG(ep, {}, `disc-q-${ep.id}`) }}
                   />
                 </div>
 

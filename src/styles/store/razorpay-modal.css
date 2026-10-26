@@ -181,7 +181,7 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1.5px solid #d9dce4;
+  border: 1.5px solid #8892ab;
   font-size: 13.5px;
 }
 .upi-verify-tag {
@@ -207,7 +207,7 @@
   width: 100%;
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1px solid #d9dce4;
+  border: 1px solid #8892ab;
   font-size: 13.5px;
 }
 .rzp-form-row {
@@ -268,4 +268,23 @@
   color: var(--lime);
   font-weight: 700;
   font-size: 14px;
+}
+
+/* iPhones zoom into inputs smaller than 16px. */
+@media (max-width: 760px), (pointer: coarse) {
+  .upi-id-input-group input,
+  .rzp-form-group input {
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  .rzp-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    right: 6px;
+    top: 8px;
+  }
 }

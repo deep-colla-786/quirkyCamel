@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Check } from 'lucide-react';
-import Hero3D from '../kit3d/Hero3D';
+import Hero3D from '../kit3d/LazyHero3D';
 import { PRICE, formatINR } from '../../data/episodes';
+import useOffscreenPause from '../../hooks/useOffscreenPause';
 
 // Home hero: headline, calls to action and the interactive 3D kit.
 export default function HeroSection({ onAddToCart, onNavigate, onOpenProduct }) {
+  const pauseRef = useRef(null);
+  useOffscreenPause(pauseRef); // pause its animations while scrolled away
+
   return (
-    <section className="band hero squig" id="top">
+    <section className="band hero squig" id="top" ref={pauseRef}>
       <div className="wrap">
         <div>
           <p className="kicker">Attar, reimagined.</p>
@@ -24,7 +28,7 @@ export default function HeroSection({ onAddToCart, onNavigate, onOpenProduct }) 
               className="btn lime"
               onClick={() => onAddToCart(1)}
             >
-              Add the complete kit · {formatINR(PRICE)}
+              Add the kit to cart · {formatINR(PRICE)}
             </button>
             <button
               className="btn ghost"

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { STATIC_CATALOG, fetchCatalog } from '../lib/catalog';
+import { initialCatalog, fetchCatalog } from '../lib/catalog';
 
-// Product catalog: starts from the built-in copy, then loads live data (prices, stock) from the API.
+// Product catalog: starts from the copy embedded in the page (or the last one seen), then
+// loads live data (prices, stock) from the API.
 export default function useCatalog() {
-  const [catalog, setCatalog] = useState(STATIC_CATALOG);
+  const [catalog, setCatalog] = useState(initialCatalog);
   const [catalogLoaded, setCatalogLoaded] = useState(false);
 
   const loadCatalog = useCallback(() => {

@@ -7,8 +7,8 @@ export function productArt(product, variant = 'main') {
   const key = `${product.slug}:${variant}`;
   if (!artCache.has(key)) {
     let html;
-    if (product.type === 'kit') html = variant === 'alt' ? sachetSVG(EPISODES[0]) : kitSVG(EPISODES);
-    else html = variant === 'alt' ? sachetSVG(product.episode) : SCENES[product.slug]();
+    if (product.type === 'kit') html = variant === 'alt' ? sachetSVG(EPISODES[0], {}, `card-${key}`) : kitSVG(EPISODES, `card-${key}`);
+    else html = variant === 'alt' ? sachetSVG(product.episode, {}, `card-${key}`) : SCENES[product.slug](`card-${key}`);
     artCache.set(key, html);
   }
   return artCache.get(key);

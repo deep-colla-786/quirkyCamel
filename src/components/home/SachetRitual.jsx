@@ -1,7 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { EPISODES, RITUAL_STEPS, PERKS } from '../../data/episodes';
-import { sachetSVG, camel } from '../../utils/svgGenerators';
+import { Pause, Play } from 'lucide-react';
+import { sachetSVG, camel, svgMarkup, esc } from '../../utils/svgGenerators';
+import usePrefersReducedMotion from '../../hooks/usePrefersReducedMotion';
+import useOffscreenPause from '../../hooks/useOffscreenPause';
+
+// Markup of the animated ritual stage (box, pouch, sachet and wrist) for one sachet.
+function buildStageMarkup(selectedEp) {
+  const fan = EPISODES.map((x, i) => {
+    const px = 52 + i * 28;
+    return `<g transform="rotate(${-14 + i * 5.6} ${px + 25} 200)">${sachetSVG(x, { x: px, y: 128, w: 50 })}</g>`;
+  }).join('');
+
+  const spark = (x, y, s) =>
+    `<path d="M${x} ${y - s}C${x + s * 0.15} ${y - s * 0.15} ${x + s * 0.15} ${y - s * 0.15} ${x + s} ${y} ${x + s * 0.15} ${y + s * 0.15} ${x + s * 0.15} ${y + s * 0.15} ${x} ${y + s} ${x - s * 0.15} ${y + s * 0.15} ${x - s * 0.15} ${y + s * 0.15} ${x - s} ${y} ${x - s * 0.15} ${y - s * 0.15} ${x - s * 0.15} ${y - s * 0.15} ${x} ${y - s}Z" fill="#fff"/>`;
+
+  return `
+    <rect width="440" height="330" fill="#2259B2"/>
+    <path d="M440 0 C390 30 420 80 350 96 C400 112 440 90 440 150Z" fill="#C4E539" opacity=".85"/>
+    <ellipse cx="220" cy="318" rx="200" ry="16" fill="#0e2554" opacity=".35"/>
+    <g class="t boxg">
+      <rect x="40" y="186" width="220" height="40" rx="4" fill="#0e2554"/>${fan}
+      <rect x="30" y="214" width="240" height="104" rx="8" fill="#2a5fd0"/><rect x="30" y="214" width="240" height="8" rx="4" fill="#3a70e0"/>
+      ${camel(108, 228, 84, '#C4E539')}
+      <text x="150" y="306" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="11" letter-spacing="3" fill="#C4E539">THE COMPLETE KIT</text>
+    </g>
+    <g class="t pouchg">
+      <ellipse cx="252" cy="176" rx="12" ry="26" fill="none" stroke="#b6d43a" stroke-width="6" transform="rotate(-20 252 176)"/>
+      <rect x="258" y="150" width="160" height="130" rx="18" fill="#173f86"/>
+    </g>
+    <g class="t hs">${sachetSVG(selectedEp, { x: 0, y: 0, w: 200 })}</g>
+    <g class="t pouchg">
+      <rect x="258" y="196" width="160" height="84" rx="16" fill="#2a5fd0"/>
+      <path d="M268 206 H408 M268 270 H408" stroke="#C4E539" stroke-width="2" stroke-dasharray="6 4"/>
+      <circle cx="338" cy="198" r="9" fill="#C4E539"/>${camel(310, 222, 56, '#C4E539')}
+    </g>
+    <g class="t wrist">
+      <path d="M460 236 L318 214 Q284 208 276 228 Q270 252 300 258 L460 290Z" fill="#d99a6c"/>
+      <path d="M300 222 Q286 218 284 230" stroke="#b97a4e" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M400 222 L460 230 L460 296 L392 282Z" fill="#C4E539"/>
+      <ellipse cx="300" cy="240" rx="22" ry="8" fill="${esc(selectedEp.pal.accent)}" opacity=".45"/>
+    </g>
+    <path class="drop" d="M0 -11 C6 -3 9 3 0 8 C-9 3 -6 -3 0 -11Z" fill="${esc(selectedEp.pal.accent)}" stroke="#fff" stroke-width="1.5"/>
+    <g class="spk">${spark(330, 196, 9)}${spark(272, 206, 6)}${spark(316, 270, 7)}</g>
+  `;
+}
 
 export default function SachetRitual({ currentEpisodeId, onSelectEpisode }) {
   const [activeStep, setActiveStep] = useState(0);
@@ -15,13 +59,21 @@ export default function SachetRitual({ currentEpisodeId, onSelectEpisode }) {
     }
   }, [currentEpisodeId]);
 
-  // Auto-advance step every 4s unless user clicks
+  // Auto-advance the steps every 4.5s while the section is on screen, unless the visitor
+  // paused it or asked their system to reduce motion (then it starts paused).
+  const sectionRef = useRef(null);
+  const inView = useOffscreenPause(sectionRef);
+  const reducedMotion = usePrefersReducedMotion();
+  const [userPaused, setUserPaused] = useState(null); // null = not chosen yet
+  const paused = userPaused ?? reducedMotion;
+  const autoAdvance = !paused && inView;
   useEffect(() => {
+    if (!autoAdvance) return undefined;
     const timer = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % 3);
     }, 4500);
     return () => clearInterval(timer);
-  }, []);
+  }, [autoAdvance]);
 
   const perkIcons = {
     pocket: (
@@ -53,59 +105,22 @@ export default function SachetRitual({ currentEpisodeId, onSelectEpisode }) {
     )
   };
 
-  const renderStageSvg = () => {
-    const fan = EPISODES.map((x, i) => {
-      const px = 52 + i * 28;
-      return `<g transform="rotate(${-14 + i * 5.6} ${px + 25} 200)">${sachetSVG(x, { x: px, y: 128, w: 50 })}</g>`;
-    }).join('');
+  // Same sachet → same markup (with fixed ids), so changing steps doesn't redraw the picture.
+  const stageMarkup = useMemo(() => svgMarkup(`ritual|${selectedEp.id}`, 'ritual', () => buildStageMarkup(selectedEp)), [selectedEp]);
 
-    const spark = (x, y, s) =>
-      `<path d="M${x} ${y - s}C${x + s * 0.15} ${y - s * 0.15} ${x + s * 0.15} ${y - s * 0.15} ${x + s} ${y} ${x + s * 0.15} ${y + s * 0.15} ${x + s * 0.15} ${y + s * 0.15} ${x} ${y + s} ${x - s * 0.15} ${y + s * 0.15} ${x - s * 0.15} ${y + s * 0.15} ${x - s} ${y} ${x - s * 0.15} ${y - s * 0.15} ${x - s * 0.15} ${y - s * 0.15} ${x} ${y - s}Z" fill="#fff"/>`;
-
-    const svgMarkup = `
-      <rect width="440" height="330" fill="#2259B2"/>
-      <path d="M440 0 C390 30 420 80 350 96 C400 112 440 90 440 150Z" fill="#C4E539" opacity=".85"/>
-      <ellipse cx="220" cy="318" rx="200" ry="16" fill="#0e2554" opacity=".35"/>
-      <g class="t boxg">
-        <rect x="40" y="186" width="220" height="40" rx="4" fill="#0e2554"/>${fan}
-        <rect x="30" y="214" width="240" height="104" rx="8" fill="#2a5fd0"/><rect x="30" y="214" width="240" height="8" rx="4" fill="#3a70e0"/>
-        ${camel(108, 228, 84, '#C4E539')}
-        <text x="150" y="306" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="700" font-size="11" letter-spacing="3" fill="#C4E539">THE COMPLETE KIT</text>
-      </g>
-      <g class="t pouchg">
-        <ellipse cx="252" cy="176" rx="12" ry="26" fill="none" stroke="#b6d43a" stroke-width="6" transform="rotate(-20 252 176)"/>
-        <rect x="258" y="150" width="160" height="130" rx="18" fill="#173f86"/>
-      </g>
-      <g class="t hs">${sachetSVG(selectedEp, { x: 0, y: 0, w: 200 })}</g>
-      <g class="t pouchg">
-        <rect x="258" y="196" width="160" height="84" rx="16" fill="#2a5fd0"/>
-        <path d="M268 206 H408 M268 270 H408" stroke="#C4E539" stroke-width="2" stroke-dasharray="6 4"/>
-        <circle cx="338" cy="198" r="9" fill="#C4E539"/>${camel(310, 222, 56, '#C4E539')}
-      </g>
-      <g class="t wrist">
-        <path d="M460 236 L318 214 Q284 208 276 228 Q270 252 300 258 L460 290Z" fill="#d99a6c"/>
-        <path d="M300 222 Q286 218 284 230" stroke="#b97a4e" stroke-width="3" fill="none" stroke-linecap="round"/>
-        <path d="M400 222 L460 230 L460 296 L392 282Z" fill="#C4E539"/>
-        <ellipse cx="300" cy="240" rx="22" ry="8" fill="${selectedEp.pal.accent}" opacity=".45"/>
-      </g>
-      <path class="drop" d="M0 -11 C6 -3 9 3 0 8 C-9 3 -6 -3 0 -11Z" fill="${selectedEp.pal.accent}" stroke="#fff" stroke-width="1.5"/>
-      <g class="spk">${spark(330, 196, 9)}${spark(272, 206, 6)}${spark(316, 270, 7)}</g>
-    `;
-
-    return (
-      <svg
-        className="stage-svg"
-        viewBox="0 0 440 330"
-        data-step={activeStep}
-        role="img"
-        aria-label="Animated illustration of how Quirky Camel sachet is used"
-        dangerouslySetInnerHTML={{ __html: svgMarkup }}
-      />
-    );
-  };
+  const renderStageSvg = () => (
+    <svg
+      className="stage-svg"
+      viewBox="0 0 440 330"
+      data-step={activeStep}
+      role="img"
+      aria-label="Animated illustration of how Quirky Camel sachet is used"
+      dangerouslySetInnerHTML={{ __html: stageMarkup }}
+    />
+  );
 
   return (
-    <section className="band sachet-sec" id="sachet">
+    <section className="band sachet-sec" id="sachet" ref={sectionRef}>
       <div className="wrap">
         <div className="head">
           <span className="eyebrow" style={{ color: 'var(--purple)' }}>
@@ -143,6 +158,16 @@ export default function SachetRitual({ currentEpisodeId, onSelectEpisode }) {
                   />
                 ))}
               </div>
+
+              <button
+                type="button"
+                className="ritual-pause"
+                onClick={() => setUserPaused(!paused)}
+                aria-label={paused ? 'Play the how-to steps' : 'Pause the how-to steps'}
+                title={paused ? 'Play' : 'Pause'}
+              >
+                {paused ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}
+              </button>
 
               <button
                 className="btn-text"

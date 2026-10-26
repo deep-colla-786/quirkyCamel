@@ -79,7 +79,8 @@ export async function startRazorpayCheckout({ items, customer }) {
             paymentId: response.razorpay_payment_id,
             method: 'Razorpay',
             amount: amount / 100,
-            trackId: v.data.order?.id
+            trackId: v.data.order?.id,
+            trackToken: v.data.guestToken || null
           });
         } else {
           done({

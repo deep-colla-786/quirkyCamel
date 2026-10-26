@@ -81,7 +81,8 @@ export default function useCheckout({ setUser, requireLogin, showToast, setCart,
       ...paymentResult,
       orderId: order.invoiceNumber,
       paymentId: 'Demo payment (no charge)',
-      trackId: order.id
+      trackId: order.id,
+      trackToken: res.data.guestToken || null
     });
   };
 

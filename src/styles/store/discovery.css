@@ -46,7 +46,8 @@
   color: var(--blue-ink);
   transition: background 0.2s, color 0.2s;
 }
-.tab[aria-selected="true"] {
+.tab[aria-selected="true"],
+.tab[aria-pressed="true"] {
   background: var(--blue);
   color: var(--white);
 }
@@ -286,4 +287,12 @@
 }
 .ep-card:hover .go i {
   transform: translateX(4px) rotate(-12deg);
+}
+
+/* Touch screens: filter tabs and chips at least 44px tall. */
+@media (pointer: coarse) {
+  .tab,
+  .chip {
+    min-height: 44px;
+  }
 }

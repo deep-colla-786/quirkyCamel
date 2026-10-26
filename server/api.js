@@ -8,6 +8,9 @@
 //   POST   /api/auth/login                  { email, password }
 //   POST   /api/auth/logout
 //   POST   /api/auth/logout-all             (login) end the user's store sessions on every device
+//   POST   /api/auth/forgot                 { email } email a password reset link (same answer either way)
+//   POST   /api/auth/reset                  { token, password } set a new password from the link
+//   DELETE /api/auth/account                (login) { password } delete the account
 //   GET    /api/account/saved               (login) the user's saved cart + wishlist
 //   POST   /api/account/saved/merge         (login) { cart, wishlist } add guest picks on login
 //   PUT    /api/account/cart/:slug          (login) { qty } set one cart line (0 removes it)
@@ -16,12 +19,15 @@
 //   GET    /api/events                      live "catalog" / "saved" change events (SSE)
 //   GET    /api/products                    active products (public)
 //   GET    /api/version                     changes whenever the server restarts with new code
+//   GET    /robots.txt, /sitemap.xml        for search engines (sitemap built from the live catalog)
 //   GET    /api/razorpay/config
-//   POST   /api/razorpay/order              (login) { items: [{ slug, qty }], customer }
-//   POST   /api/razorpay/verify             (login) Razorpay handler response
-//   POST   /api/orders/demo                 (login, only while Razorpay keys are placeholders)
+//   POST   /api/razorpay/order              (login or guest) { items: [{ slug, qty }], customer }
+//   POST   /api/razorpay/verify             (login or guest) Razorpay handler response
+//   POST   /api/orders/demo                 (login or guest; only while Razorpay keys are placeholders)
+//   POST   /api/orders/claim                (login) { orderId, token } attach a guest order to the account
 //   GET    /api/orders                      (login) the user's orders (with a delivery summary)
-//   GET    /api/orders/:id/tracking         (login) full delivery tracking for one of the user's orders
+//   GET    /api/orders/:id/tracking?t=      full delivery tracking (the order's owner, or a guest's token)
+//   GET    /api/delivery/estimate?pin=      delivery time for a PIN code (Shiprocket, or the typical time)
 //   POST   /api/delivery/updates            Shiprocket tracking webhook (x-api-key = SHIPROCKET_WEBHOOK_TOKEN)
 //
 //   GET    /api/admin/auth/me               current admin or null
@@ -49,7 +55,10 @@
 //   DELETE /api/admin/products/:slug        (admin) delete (custom products only)
 //   POST   /api/admin/upload                (admin) { dataUrl } -> { url }
 import { ObjectId } from 'mongodb';
-import { HttpError, readJson, sendJson } from './http.js';
+import { HttpError, readJson, sendJson, safeDecode, securityHeaders, setTrustedProxies, clientIp, isHttps } from './http.js';
+import { assertSafeConfig } from './config.js';
+import { forgotPassword, resetPassword, deleteAccount } from './account.js';
+import { robotsTxt, sitemapXml } from './pages.js';
 import {
   getStoreUser,
   requireUser,
@@ -77,7 +86,8 @@ import {
   startDeliverySync
 } from './delivery/shipments.js';
 import { WEBHOOK_PATH } from './delivery/config.js';
-import { razorpayConfig, createOrder, verifyPayment, createDemoOrder, listOrders } from './razorpay.js';
+import { deliveryEstimate } from './delivery/estimate.js';
+import { razorpayConfig, createOrder, verifyPayment, createDemoOrder, listOrders, claimGuestOrder } from './razorpay.js';
 import {
   listPublicProducts,
   listAllProducts,
@@ -127,6 +137,9 @@ function storeRoutes(env) {
       await logout(req, res, env);
       return { ok: true };
     }],
+    ['POST', '/api/auth/forgot', async (req) => forgotPassword(req, env, await readJson(req))],
+    ['POST', '/api/auth/reset', async (req) => resetPassword(req, env, await readJson(req))],
+    ['DELETE', '/api/auth/account', async (req, res) => deleteAccount(req, res, env, await requireUser(req, res, env), await readJson(req))],
     ['POST', '/api/auth/logout-all', async (req, res) => {
       await readJson(req);
       return { ended: await logoutEverywhere(req, res, env) };
@@ -156,11 +169,15 @@ function storeRoutes(env) {
       const { keyId, configured } = razorpayConfig(env);
       return { configured, keyId: configured ? keyId : null };
     }],
-    ['POST', '/api/razorpay/order', async (req, res) => createOrder(env, await requireUser(req, res, env), await readJson(req))],
-    ['POST', '/api/razorpay/verify', async (req, res) => verifyPayment(env, await requireUser(req, res, env), await readJson(req))],
-    ['POST', '/api/orders/demo', async (req, res) => createDemoOrder(env, await requireUser(req, res, env), await readJson(req))],
+    // Checkout works signed in or as a guest.
+    ['POST', '/api/razorpay/order', async (req, res) => createOrder(env, await getStoreUser(req, res, env), await readJson(req), req)],
+    ['POST', '/api/razorpay/verify', async (req, res) => verifyPayment(env, await getStoreUser(req, res, env), await readJson(req))],
+    ['POST', '/api/orders/demo', async (req, res) => createDemoOrder(env, await getStoreUser(req, res, env), await readJson(req), req)],
+    ['POST', '/api/orders/claim', async (req, res) => claimGuestOrder(env, await requireUser(req, res, env), await readJson(req))],
     ['GET', '/api/orders', async (req, res) => listOrders(env, await requireUser(req, res, env))],
-    ['GET', '/api/orders/:id/tracking', async (req, res, params) => trackingForUser(env, await requireUser(req, res, env), params.id)],
+    ['GET', '/api/orders/:id/tracking', async (req, res, params, query) =>
+      trackingForUser(env, await getStoreUser(req, res, env), params.id, query.get('t'))],
+    ['GET', '/api/delivery/estimate', (req, res, params, query) => deliveryEstimate(env, req, query.get('pin'))],
     ['POST', WEBHOOK_PATH, async (req) => handleWebhook(env, req, await readJson(req, { limit: 5e5 }))]
   ];
 }
@@ -240,34 +257,59 @@ function sendError(res, err) {
   });
 }
 
+// Route parameters from the URL; null if any is malformed (e.g. a stray "%").
+function decodeParams(keys, match) {
+  const params = {};
+  for (const [i, key] of keys.entries()) {
+    const value = safeDecode(match[i + 1]);
+    if (value === null) return null;
+    params[key] = value;
+  }
+  return params;
+}
+
 export function apiMiddleware(env) {
+  assertSafeConfig(env);
+  setTrustedProxies(env.TRUST_PROXY);
   startDeliverySync(env);
   // Live updates; signed-in shoppers also get their own cart/wishlist events.
   const streamEvents = async (req, res, qs) => {
-    try {
-      const user = await getStoreUser(req, null, env);
-      openStream(req, res, { userId: user?._id, clientId: new URLSearchParams(qs).get('client') || '' });
-    } catch (err) {
-      sendError(res, err);
-    }
+    const user = await getStoreUser(req, null, env);
+    const opened = openStream(req, res, { userId: user?._id, clientId: new URLSearchParams(qs).get('client') || '', ip: clientIp(req) });
+    if (!opened) sendJson(res, 429, { error: 'Too many open connections.' });
   };
 
   const routes = [...storeRoutes(env), ...adminRoutes(env)].map(compileRoute);
 
-  return async (req, res, next) => {
+  const sendSeoFile = async (req, res, path) => {
+    securityHeaders(res, { https: isHttps(req) });
+    const robots = path === '/robots.txt';
+    res.setHeader('Content-Type', robots ? 'text/plain; charset=utf-8' : 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.end(robots ? robotsTxt(env, req) : await sitemapXml(env, req));
+  };
+
+  const handle = async (req, res, next) => {
     const [path, qs = ''] = (req.url || '').split('?');
+    const isApi = path.startsWith('/api/');
+    if (isApi || path.startsWith('/uploads/')) securityHeaders(res, { https: isHttps(req) });
+    if (req.method === 'GET' && (path === '/robots.txt' || path === '/sitemap.xml')) return sendSeoFile(req, res, path);
     if (req.method === 'GET' && path.startsWith('/uploads/') && (await serveUpload(req, res))) return;
-    if (!path.startsWith('/api/')) return next();
+    if (!isApi) return next();
     if (req.method === 'GET' && path === '/api/events') return streamEvents(req, res, qs);
 
     let match = null;
     const route = routes.find((r) => r.method === req.method && (match = r.re.exec(path)));
     if (!route) return sendJson(res, 404, { error: 'Not found' });
-    const params = Object.fromEntries(route.keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]));
-    try {
-      sendJson(res, 200, await route.handler(req, res, params, new URLSearchParams(qs)));
-    } catch (err) {
-      sendError(res, err);
-    }
+    const params = decodeParams(route.keys, match);
+    if (!params) return sendJson(res, 400, { error: 'Bad request' });
+    sendJson(res, 200, await route.handler(req, res, params, new URLSearchParams(qs)));
   };
+
+  // Any error ends in a JSON answer; nothing can escape and stop the server.
+  return (req, res, next) =>
+    handle(req, res, next).catch((err) => {
+      if (res.headersSent) return res.end();
+      return sendError(res, err);
+    });
 }

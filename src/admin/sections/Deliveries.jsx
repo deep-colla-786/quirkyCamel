@@ -4,9 +4,11 @@ import { RefreshCw, X, RotateCcw } from 'lucide-react';
 import { adminApi } from '../../lib/api';
 import { fmtDateTime } from '../utils/format';
 import DeliveryBar from '../components/DeliveryBar';
+import LoadError from '../components/LoadError';
 import DeliveryBadge from '../../components/delivery/DeliveryBadge';
 import TrackingDetails from '../../components/delivery/TrackingDetails';
 import { fmtDay, placeName } from '../../components/delivery/deliveryFormat';
+import useDialog from '../../hooks/useDialog';
 
 const POLL_MS = 20_000; // the list refreshes itself while the tab is open
 const FILTERS = [
@@ -39,11 +41,7 @@ function DeliveryDetail({ orderId, onClose, onChanged }) {
     return () => clearInterval(timer);
   }, [load]);
 
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    globalThis.addEventListener('keydown', onKey);
-    return () => globalThis.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const dialogRef = useDialog(true, onClose);
 
   const run = async (request, done) => {
     setBusy(true);
@@ -59,8 +57,8 @@ function DeliveryDetail({ orderId, onClose, onChanged }) {
 
   const isDemo = shipment?.mode === 'demo';
   return (
-    <div className="ad-modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ad-modal ad-delivery-modal" role="dialog" aria-modal="true" aria-labelledby="dl-title">
+    <div className="ad-modal-scrim" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={dialogRef} className="ad-modal ad-delivery-modal" role="dialog" aria-modal="true" aria-labelledby="dl-title">
         <header>
           <div>
             <h2 id="dl-title">Delivery · {shipment?.invoiceNumber || '…'}</h2>
@@ -107,12 +105,16 @@ DeliveryDetail.propTypes = {
 // Every order's shipment: courier, AWB, where it is and when it arrives.
 export default function Deliveries({ openOrderId, onOpen }) {
   const [rows, setRows] = useState(null);
+  const [listError, setListError] = useState('');
   const [filter, setFilter] = useState('all');
   const [viewing, setViewing] = useState(openOrderId || null);
 
   const load = useCallback(async () => {
     const res = await adminApi.deliveries();
-    if (res.ok) setRows(res.data.shipments);
+    if (res.ok) {
+      setRows(res.data.shipments);
+      setListError('');
+    } else if (res.status !== 401) setListError(res.data.error || 'Couldn’t load deliveries.');
   }, []);
 
   useEffect(() => {
@@ -126,6 +128,7 @@ export default function Deliveries({ openOrderId, onOpen }) {
     onOpen?.(null);
   }, [onOpen]);
 
+  if (listError && !rows) return <LoadError message={listError} onRetry={load} />;
   if (!rows) return <p className="ad-muted">Loading…</p>;
   const list = rows.filter((s) => matchesFilter(s, filter));
 

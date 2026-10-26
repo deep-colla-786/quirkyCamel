@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { LayoutDashboard, ShoppingCart, Users, LogIn, Package, RefreshCw, LogOut, KeyRound, Truck } from 'lucide-react';
 import { adminApi } from '../lib/api';
 import ProductEditor from './components/ProductEditor';
+import LoadError from './components/LoadError';
 import Overview from './sections/Overview';
 import Orders from './sections/Orders';
 import UsersTab from './sections/UsersTab';
@@ -21,10 +22,17 @@ const TABS = [
   ['products', 'Products', Package]
 ];
 const FLASH_MS = 2500;
+const TAB_IDS = new Set(TABS.map(([id]) => id));
+// The open tab lives in the address (/admin#orders), so a refresh stays on it.
+const tabFromUrl = () => {
+  const id = globalThis.location.hash.slice(1);
+  return TAB_IDS.has(id) ? id : 'overview';
+};
 const CLOSED = undefined; // product editor: CLOSED, null = new product, object = edit
 
 export default function AdminDashboard({ user, onLogout }) {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTabState] = useState(tabFromUrl);
+  const [loadError, setLoadError] = useState('');
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState(null);
   const [products, setProducts] = useState(null);
@@ -38,12 +46,26 @@ export default function AdminDashboard({ user, onLogout }) {
 
   // A 401 is handled by AdminApp (session ended); 403 means the account lost admin rights.
   const load = useCallback(async () => {
-    const [s, o, p] = await Promise.all([adminApi.stats(), adminApi.orders(), adminApi.products()]);
-    if ([s, o, p].some((r) => r.status === 403)) return onLogout();
+    const results = await Promise.all([adminApi.stats(), adminApi.orders(), adminApi.products()]);
+    const [s, o, p] = results;
+    if (results.some((r) => r.status === 403)) return onLogout();
     if (s.ok) setStats(s.data);
     if (o.ok) setOrders(o.data.orders);
     if (p.ok) setProducts(p.data.products);
+    const failed = results.find((r) => !r.ok && r.status !== 401);
+    setLoadError(failed ? failed.data.error || 'Couldn’t load the dashboard data.' : '');
   }, [onLogout]);
+
+  const setTab = useCallback((id) => {
+    setTabState(id);
+    globalThis.history.replaceState(null, '', `#${id}`);
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => setTabState(tabFromUrl());
+    globalThis.addEventListener('hashchange', onHash);
+    return () => globalThis.removeEventListener('hashchange', onHash);
+  }, []);
 
   useEffect(() => {
     load();
@@ -132,6 +154,7 @@ export default function AdminDashboard({ user, onLogout }) {
           </button>
         </header>
 
+        {loadError && <LoadError message={loadError} onRetry={refresh} />}
         <React.Fragment key={`${tab}-${refreshKey}`}>{sections[tab]()}</React.Fragment>
       </div>
 

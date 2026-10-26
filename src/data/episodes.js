@@ -40,7 +40,9 @@ export const EPISODES = [
       accent: '#24c3cf',
       soft: '#ffe9c7',
       deep: '#6b3608',
-      accent2: '#24c3cf'
+      accent2: '#24c3cf',
+      // Hero text on the light orange: a darker shade of deep (4.6:1, white was 2.6:1).
+      heroInk: '#562b06'
     },
     camel: '#2259B2'
   },
@@ -143,7 +145,9 @@ export const EPISODES = [
       accent: '#5fe6d4',
       soft: '#ffe4e4',
       deep: '#7a1d33',
-      accent2: '#ff9100'
+      accent2: '#ff9100',
+      // Hero text on the pink: a darker shade of deep (4.7:1, white was 2.4:1).
+      heroInk: '#6e1a2e'
     },
     camel: '#2259B2'
   },
@@ -253,15 +257,6 @@ export const ROUTES = {
   }
 };
 
-export const OCC_ICON = {
-  office: 'office',
-  everyday: 'everyday',
-  parties: 'parties',
-  dates: 'dates',
-  evenings: 'evenings',
-  holidays: 'holidays'
-};
-
 export const OCC_LABELS = Object.fromEntries(ROUTES.occ.opts);
 export const MOOD_LABELS = Object.fromEntries(ROUTES.mood.opts);
 
@@ -314,7 +309,7 @@ export const FAQS = [
   },
   {
     q: "What's in the complete kit?",
-    a: 'Sachets of all six episodes (Trouble in Oasis, Camel After Dark, Madam Camel, Mirage, Fruitto Del Deserto, and Oud But Different), a deluxe collector box, a protective vegan leather snap pouch with carabiner, and a branded drawstring travel bag.'
+    a: 'Sachets of all six episodes (Trouble in Oasis, Camel After Dark, Madam Camel, Mirage, Fruitto Del Deserto, and Oud But Different), a collector box, a vegan leather snap pouch with carabiner, and a drawstring bag.'
   },
   {
     q: 'Which episode should I start with?',
@@ -329,8 +324,8 @@ export const FAQS = [
     a: 'Smooth, pleasant, and inviting, with unisex appeal and made with evening nightlife in mind. Its exact formulation is crafted for cold nights and social gatherings.'
   },
   {
-    q: 'Is Quirky Camel attar alcohol-free and skin-safe?',
-    a: 'Yes, 100%! All our attars are concentrated perfume oils formulated without alcohol or harsh drying agents. They are dermatologically tested, IFRA-compliant, and gentle on sensitive skin.'
+    q: 'Is Quirky Camel attar alcohol-free?',
+    a: 'Yes. All our attars are concentrated perfume oils made without alcohol. If you have sensitive skin, try a small patch on your wrist first.'
   },
   {
     q: 'How long does each sachet last once opened?',
@@ -339,12 +334,10 @@ export const FAQS = [
 ];
 
 export const KIT_SPECIFICATIONS = [
-  { label: 'Format', value: 'Sealed Attar Oil Sachets' },
-  { label: 'Total Fragrances', value: '6 Unique Episodes' },
-  { label: 'Alcohol Content', value: '0% (100% Pure Perfume Oil)' },
-  { label: 'Longevity', value: '8 - 12 Hours per application' },
-  { label: 'Compliance', value: 'IFRA Standard & Cruelty-Free' },
-  { label: 'Accessories', value: 'Vegan Leather Snap Pouch + Carabiner' },
-  { label: 'Packaging', value: 'Collector Gift Box with Magnetic Clasp' },
-  { label: 'Origin', value: 'Handcrafted in India' }
+  { label: 'Format', value: 'Sealed attar oil sachets' },
+  { label: 'Total Fragrances', value: '6 unique episodes' },
+  { label: 'Alcohol Content', value: 'Alcohol-free perfume oil' },
+  { label: 'Longevity', value: '8–12 hours per application' },
+  { label: 'Accessories', value: 'Vegan leather snap pouch, carabiner and drawstring bag' },
+  { label: 'Packaging', value: 'Collector box' }
 ];

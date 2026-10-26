@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { readStore, writeStore } from '../lib/storage';
+import { useState, useCallback } from 'react';
+import { readStore, useStoredState } from '../lib/storage';
 
 // Wishlist ("saved") and recently viewed products, persisted per browser.
 export default function useSavedItems({ catalog, showToast }) {
   const [wishlist, setWishlist] = useState(() => readStore('qc-wishlist', []));
   const [recentlyViewed, setRecentlyViewed] = useState(() => readStore('qc-recent', []));
 
-  useEffect(() => writeStore('qc-wishlist', wishlist), [wishlist]);
-  useEffect(() => writeStore('qc-recent', recentlyViewed), [recentlyViewed]);
+  useStoredState('qc-wishlist', wishlist, setWishlist, []);
+  useStoredState('qc-recent', recentlyViewed, setRecentlyViewed, []);
 
   const toggleWishlist = (slug) => {
     const adding = !wishlist.includes(slug);

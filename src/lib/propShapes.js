@@ -12,7 +12,8 @@ export const paletteShape = PropTypes.shape({
   accent2: PropTypes.string,
   btnBg: PropTypes.string,
   btnInk: PropTypes.string,
-  hl: PropTypes.string
+  hl: PropTypes.string,
+  heroInk: PropTypes.string
 });
 
 export const episodeShape = PropTypes.shape({

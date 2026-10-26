@@ -2,7 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { EPISODES, formatINR } from '../../data/episodes';
-import { KIT, productHash } from '../../data/products';
+import { KIT_SLUG, productPath } from '../../data/products';
+import { paths } from '../../lib/routes';
 import { inStock, soldInKitOnly } from '../../lib/catalog';
 import { productArt } from './productArt';
 import { productShape } from '../../lib/propShapes';
@@ -34,7 +35,7 @@ export default function ProductCard({ product, featured = false, saved, onToggle
   const isKit = product.type === 'kit';
   const isExtra = product.type === 'product';
   const ep = product.episode;
-  const href = productHash(product.slug);
+  const href = productPath(product.slug);
   const available = inStock(product);
 
   const badge = cardBadge(product, available);
@@ -94,8 +95,8 @@ export default function ProductCard({ product, featured = false, saved, onToggle
           {soldInKitOnly(product) ? (
             <>
               <div className="pc-price pc-price-incl">
-                <small>In the Complete Kit</small>
-                <b>{formatINR(KIT.price)}</b>
+                <small>Only in the</small>
+                <b><a href={paths.product(KIT_SLUG)}>Complete Kit</a></b>
               </div>
               <a className="btn ghost-dark pc-cta" href={href}>
                 View details

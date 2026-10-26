@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import confetti from 'canvas-confetti';
 import { MANIFESTO_QUOTES } from '../../data/episodes';
 import { CAMEL_MASCOT_WEBP } from '../../utils/svgGenerators';
+import useOffscreenPause from '../../hooks/useOffscreenPause';
 
 export default function ManifestoSection({ onExploreEpisodes, onShopKit }) {
+  const pauseRef = useRef(null);
+  useOffscreenPause(pauseRef); // pause its animations while scrolled away
+
   const [speechIndex, setSpeechIndex] = useState(0);
   const [showSpeech, setShowSpeech] = useState(false);
   const [wiggling, setWiggling] = useState(false);
@@ -19,7 +23,8 @@ export default function ManifestoSection({ onExploreEpisodes, onShopKit }) {
         particleCount: 30,
         spread: 60,
         origin: { y: 0.7 },
-        colors: ['#C4E539', '#7616C1', '#FF9100', '#2259B2']
+        colors: ['#C4E539', '#7616C1', '#FF9100', '#2259B2'],
+        disableForReducedMotion: true
       });
     } catch {
       // Confetti is decorative only; ignoring a failure leaves the rest of the boop intact.
@@ -30,7 +35,7 @@ export default function ManifestoSection({ onExploreEpisodes, onShopKit }) {
   };
 
   return (
-    <section className="band mani squig" id="story">
+    <section className="band mani squig" id="story" ref={pauseRef}>
       <div className="wrap">
         <div className="camel">
           <div className="arch">

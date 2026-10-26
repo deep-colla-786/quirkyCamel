@@ -21,7 +21,7 @@
   margin-bottom: 20px;
 }
 .hero .sub {
-  max-width: 46ch;
+  max-width: 27.94em; /* 46ch of Lexend, in em so the fallback font wraps the same */
   color: #dbe6fb;
   font-size: 16.5px;
   margin: 0 0 26px;

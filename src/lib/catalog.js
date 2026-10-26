@@ -40,14 +40,14 @@ function details(p, base) {
 
 function kitProduct(p) {
   applyKitPricing(p.price, p.mrp);
-  return { ...KIT, ...details(p, KIT), packs: p.packs || KIT.packs, stock: p.stock ?? null };
+  return { ...KIT, ...details(p, KIT), packs: p.packs || KIT.packs, stock: p.stock ?? null, image: p.image || null };
 }
 
 // A fragrance's scent overrides apply to its product page; the episode story pages
 // keep the built-in copy.
 function fragranceProduct(p, base) {
   const episode = { ...base.episode, scent: p.scent || base.episode.scent, scentTags: p.scentTags || base.episode.scentTags };
-  return { ...base, ...details(p, base), episode, ...pricing(p) };
+  return { ...base, ...details(p, base), episode, ...pricing(p), image: p.image || null };
 }
 
 // Price fields from the dashboard (a fragrance without a price has price null).
@@ -83,7 +83,28 @@ export function buildCatalog(apiProducts) {
   return index(out.sort((a, b) => rank(a) - rank(b)));
 }
 
+const CACHE_KEY = 'qc-catalog';
+
+// The catalog to show before the API answers, so prices never flash the built-in
+// values: the copy the server put in the page, else the last one this browser saw.
+export function initialCatalog() {
+  try {
+    const embedded = document.getElementById('qc-catalog')?.textContent;
+    const products = embedded ? JSON.parse(embedded) : JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (Array.isArray(products) && products.length) return buildCatalog(products);
+  } catch {
+    // unreadable copy: fall back to the built-in catalog
+  }
+  return STATIC_CATALOG;
+}
+
 export async function fetchCatalog() {
   const res = await api('/products');
-  return res.ok && Array.isArray(res.data.products) ? buildCatalog(res.data.products) : null;
+  if (!res.ok || !Array.isArray(res.data.products)) return null;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(res.data.products));
+  } catch {
+    // storage unavailable (private mode): nothing to cache
+  }
+  return buildCatalog(res.data.products);
 }

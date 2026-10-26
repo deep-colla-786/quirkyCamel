@@ -41,7 +41,10 @@ export const authApi = {
   login: (email, password) => post('/auth/login', { email, password }),
   signup: (fields) => post('/auth/signup', fields),
   logout: () => post('/auth/logout'),
-  logoutAll: () => post('/auth/logout-all')
+  logoutAll: () => post('/auth/logout-all'),
+  forgot: (email) => post('/auth/forgot', { email }),
+  reset: (token, password) => post('/auth/reset', { token, password }),
+  deleteAccount: (password) => api('/auth/account', { method: 'DELETE', body: { password } })
 };
 
 // The signed-in customer's cart and wishlist, kept on their account.
@@ -53,10 +56,15 @@ export const accountApi = {
   unsave: (slug) => api(`/account/wishlist/${enc(slug)}`, { method: 'DELETE' })
 };
 
+export const deliveryApi = {
+  estimate: (pin) => api(`/delivery/estimate?pin=${enc(pin)}`)
+};
+
 export const ordersApi = {
   list: () => api('/orders'),
   createDemo: (items, customer) => post('/orders/demo', { items, customer }),
-  tracking: (orderId) => api(`/orders/${enc(orderId)}/tracking`)
+  tracking: (orderId, token) => api(`/orders/${enc(orderId)}/tracking` + (token ? '?t=' + enc(token) : '')),
+  claim: (orderId, token) => post('/orders/claim', { orderId, token })
 };
 
 export const adminApi = {

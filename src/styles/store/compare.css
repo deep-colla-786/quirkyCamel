@@ -90,7 +90,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
-  opacity: 0.7;
+  opacity: 0.85; /* 0.7 was below 4.5:1 on both columns */
   margin-bottom: 2px;
 }
 .vs li span { font-size: 15px; line-height: 1.4; }

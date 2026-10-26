@@ -100,6 +100,6 @@ export function toFields(form, product) {
     fields.scent = form.scent;
     fields.scentTags = form.scentTags.split(',').map((t) => t.trim()).filter(Boolean);
   }
-  if (!product?.builtIn) fields.image = form.image;
+  fields.image = form.image;
   return fields;
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { accountApi } from '../lib/api';
 
 const SAVE_DELAY_MS = 300;
+const RETRY_DELAY_MS = 5000;
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const countItems = (cart) => Object.values(cart).reduce((n, q) => n + q, 0);
@@ -91,14 +92,28 @@ export default function useAccountSync({ user, authChecked, cart, setCart, wishl
     };
   }, [user, adopt, showToast]);
 
-  // Sends whatever changed since the account's copy was last seen.
-  const sendChanges = useCallback(() => {
-    if (!known.current) return Promise.resolve();
+  // Sends whatever changed since the account's copy was last seen. The account's copy is
+  // only updated once the requests succeed; after a network or server error the same
+  // changes are sent again a few seconds later.
+  const retryTimer = useRef(null);
+  const sendChanges = useCallback(async () => {
+    clearTimeout(retryTimer.current);
+    if (!known.current) return;
+    const before = known.current;
     const now = latest.current;
-    const requests = changes(known.current, now);
+    const requests = changes(before, now);
+    if (!requests.length) return;
     known.current = now;
-    return Promise.all(requests.map((send) => send()));
+    const results = await Promise.all(requests.map((send) => send()));
+    // 4xx (e.g. a product that was deleted) won't succeed on retry; network/5xx might.
+    const retryable = results.some((r) => !r.ok && (r.status === 0 || r.status >= 500));
+    if (retryable && known.current === now) {
+      known.current = before;
+      retryTimer.current = setTimeout(() => sendChanges(), RETRY_DELAY_MS);
+    }
   }, []);
+
+  useEffect(() => () => clearTimeout(retryTimer.current), []);
 
   // Save each change shortly after it happens.
   useEffect(() => {

@@ -1,0 +1,7 @@
+/* Animated sections scrolled out of view are paused (see src/hooks/useOffscreenPause.js). */
+.is-offscreen,
+.is-offscreen *,
+.is-offscreen *::before,
+.is-offscreen *::after {
+  animation-play-state: paused !important;
+}

@@ -17,7 +17,7 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
             <LineThumb product={product} />
             <div>
               <b>
-                <a href={`#product/${product.slug}`} onClick={onClose}>
+                <a href={`/product/${product.slug}`} onClick={onClose}>
                   {product.name}
                 </a>
               </b>
@@ -28,23 +28,22 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
                       <i key={e.id} style={{ background: e.pal.bg }} title={e.name} />
                     ))}
                   </div>
-                  <small>All 6 sealed fragrance sachets, collector box, snap pouch and carabiner.</small>
+                  <small>6 sealed attar sachets, collector box, snap pouch, carabiner and drawstring bag.</small>
                 </>
               ) : (
                 <small>{product.tagline}</small>
               )}
               <div className="row">
-                <div className="qty" style={{ height: 38 }}>
+                <div className="qty">
                   <button
-                    style={{ width: 34, height: 38 }}
                     onClick={() => onSetQty(product.slug, Math.max(1, qty - 1))}
+                    disabled={qty <= 1}
                     aria-label={`Decrease ${product.name}`}
                   >
                     −
                   </button>
-                  <output>{qty}</output>
+                  <output aria-live="polite">{qty}</output>
                   <button
-                    style={{ width: 34, height: 38 }}
                     onClick={() => onSetQty(product.slug, Math.min(capped, qty + 1))}
                     disabled={qty >= capped}
                     aria-label={`Increase ${product.name}`}
@@ -68,7 +67,7 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
           <span>
             <b>Add the Complete Kit?</b> All six fragrance episodes in one box.
           </span>
-          <button onClick={onAddKit}>+ Add kit</button>
+          <button onClick={onAddKit}>Add to cart</button>
         </div>
       )}
 
@@ -80,8 +79,8 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
           <span>{formatINR(subtotal)}</span>
         </div>
         <div>
-          <span>Express Shipping</span>
-          <span style={{ color: 'var(--lime-deep)', fontWeight: 700 }}>FREE</span>
+          <span>Shipping</span>
+          <span className="free-ship">FREE</span>
         </div>
         <div className="grand">
           <span>Total Amount</span>
@@ -94,10 +93,10 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
           className="btn blue wide"
           onClick={onCheckout}
         >
-          Proceed to Checkout <ArrowRight size={18} />
+          Proceed to checkout <ArrowRight size={18} />
         </button>
         <button className="btn ghost-dark wide" onClick={onClose}>
-          Continue Browsing
+          Continue browsing
         </button>
       </div>
     </>
@@ -111,10 +110,10 @@ export default function CartStep({ lines, kit, subtotal, onSetQty, onAddKit, onC
       </p>
       {kit && (
         <button className="btn blue" style={{ marginTop: 12 }} onClick={onAddKit}>
-          Add Complete Kit · {formatINR(kit.price)}
+          Add the kit to cart · {formatINR(kit.price)}
         </button>
       )}
-      <a className="btn ghost-dark" style={{ marginTop: 10 }} href="#shop" onClick={onClose}>
+      <a className="btn ghost-dark" style={{ marginTop: 10 }} href="/shop" onClick={onClose}>
         Browse the shop
       </a>
     </div>

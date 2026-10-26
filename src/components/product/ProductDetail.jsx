@@ -47,7 +47,7 @@ function renderHighlights(kind, product) {
     return (
       <div className="pd-swatch-row" aria-label="Fragrances included">
         {EPISODES.map((e) => (
-          <a key={e.id} href={`#product/${e.id}`} style={{ background: e.pal.bg }} title={e.name}>
+          <a key={e.id} href={`/product/${e.id}`} style={{ background: e.pal.bg }} title={e.name}>
             <span className="sr">{e.name}</span>
           </a>
         ))}
@@ -132,9 +132,9 @@ export default function ProductDetail({
     >
       <div className="wrap">
         <nav className="crumbs" aria-label="Breadcrumb">
-          <a href="#top">Home</a>
+          <a href="/">Home</a>
           <span>/</span>
-          <a href="#shop">Shop</a>
+          <a href="/shop">Shop</a>
           <span>/</span>
           <span>{copy.crumb}</span>
           <span>/</span>

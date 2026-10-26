@@ -19,6 +19,7 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
         <input
           id="co-name"
           name="name"
+          autoComplete="name"
           value={formData.name}
           onChange={onChange}
           required
@@ -32,6 +33,7 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
             id="co-email"
             name="email"
             type="email"
+            autoComplete="email"
             value={formData.email}
             onChange={onChange}
             required
@@ -43,6 +45,8 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
             id="co-phone"
             name="phone"
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             value={formData.phone}
             onChange={onChange}
             required
@@ -55,6 +59,7 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
         <input
           id="co-addr"
           name="addr"
+          autoComplete="street-address"
           value={formData.addr}
           onChange={onChange}
           required
@@ -67,6 +72,7 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
           <input
             id="co-city"
             name="city"
+            autoComplete="address-level2"
             value={formData.city}
             onChange={onChange}
             required
@@ -77,6 +83,9 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
           <input
             id="co-pin"
             name="pin"
+            autoComplete="postal-code"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={formData.pin}
             onChange={onChange}
             maxLength={6}
@@ -87,7 +96,7 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
 
       <label htmlFor="co-state">
         STATE
-        <select id="co-state" name="state" value={formData.state} onChange={onChange} required>
+        <select id="co-state" name="state" autoComplete="address-level1" value={formData.state} onChange={onChange} required>
           <option value="">Choose your state</option>
           {INDIAN_STATES.map((s) => (
             <option key={s} value={s}>
@@ -105,12 +114,12 @@ export default function ShippingStep({ formData, formError, onChange, onSubmit, 
           checked={formData.isgift}
           onChange={onChange}
         />
-        This is a gift order (Include complimentary handwritten note)
+        This is a gift order (add a free gift note)
       </label>
 
       {formData.isgift && (
         <label htmlFor="co-gift">
-          GIFT MESSAGE
+          GIFT NOTE
           <textarea
             id="co-gift"
             name="gift"

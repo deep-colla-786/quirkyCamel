@@ -44,6 +44,8 @@ export function getDb(env) {
           db.collection('orders').createIndex({ userId: 1, createdAt: -1 }),
           db.collection('orders').createIndex({ createdAt: -1 }),
           db.collection('orders').createIndex({ razorpayOrderId: 1 }, { unique: true, sparse: true }),
+          db.collection('passwordResets').createIndex({ tokenHash: 1 }, { unique: true }),
+          db.collection('passwordResets').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
           db.collection('shipments').createIndex({ orderId: 1 }, { unique: true }),
           db.collection('shipments').createIndex({ awb: 1 }, { sparse: true }),
           db.collection('shipments').createIndex({ userId: 1, createdAt: -1 }),
@@ -51,6 +53,7 @@ export function getDb(env) {
         ]);
         await seedProducts(db);
         await ensureAdmin(db, env);
+        await demoteFormerAdmins(db, env);
         await migrateSavedItems(db);
         return db;
       })
@@ -114,6 +117,29 @@ async function ensureAdmin(db, env) {
   if (!(await verifyPassword(password, existing.passwordHash))) {
     update.passwordHash = await hashPassword(password);
     update.updatedAt = now;
+    // New admin password: sessions signed in with the old one end.
+    await db.collection('sessions').deleteMany({ userId: existing._id, scope: 'admin' });
   }
   await users.updateOne({ _id: existing._id }, { $set: update });
+}
+
+// Only ADMIN_EMAIL is an admin. Accounts that were admins before ADMIN_EMAIL changed
+// become customers again, and their admin sessions end.
+async function demoteFormerAdmins(db, env) {
+  const email = String(env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!email) return;
+  const former = await db.collection('users').find({ role: 'admin', email: { $ne: email } }, { projection: { _id: 1 } }).toArray();
+  if (!former.length) return;
+  const ids = former.map((u) => u._id);
+  await db.collection('users').updateMany({ _id: { $in: ids } }, { $set: { role: 'customer', updatedAt: new Date() } });
+  await db.collection('sessions').deleteMany({ userId: { $in: ids }, scope: 'admin' });
+  console.log(`[db] removed admin rights from ${ids.length} account(s) that are no longer ADMIN_EMAIL`);
+}
+
+// Closes the shared connection (used by the tests).
+export async function closeDb() {
+  if (!dbPromise) return;
+  const db = await dbPromise.catch(() => null);
+  dbPromise = null;
+  await db?.client.close();
 }

@@ -1,4 +1,23 @@
 /* Quirky Camel Design System & Styles */
+
+/* Local stand-ins sized to match the web fonts, so text doesn't reflow (layout shift) when
+   Bagel Fat One and Lexend arrive. Sizes measured on the hero heading and intro. */
+@font-face {
+  font-family: "Bagel Fat One Fallback";
+  src: local("Arial Rounded MT Bold"), local("ArialRoundedMTBold");
+  size-adjust: 94%;
+}
+@font-face {
+  font-family: "Bagel Fat One Fallback 2";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust: 95.5%;
+}
+@font-face {
+  font-family: "Lexend Fallback";
+  src: local("Segoe UI"), local("SegoeUI"), local("Arial"), local("ArialMT");
+  size-adjust: 108%;
+}
+
 :root {
   color-scheme: light;
   --blue: #2259B2;
@@ -15,9 +34,9 @@
   --ink: #212121;
   --white: #ffffff;
   --muted: #5b5f6b;
-  --display: "Bagel Fat One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --display: "Bagel Fat One", "Bagel Fat One Fallback", "Bagel Fat One Fallback 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   --mix: "Gluten", "Trebuchet MS", cursive;
-  --body: "Lexend", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Lexend", "Lexend Fallback", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --gut-l: max(16px, env(safe-area-inset-left, 0px));
   --gut-r: max(16px, env(safe-area-inset-right, 0px));
   --squig: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.0045' numOctaves='2' seed='7'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 1.9'/><feComponentTransfer><feFuncA type='discrete' tableValues='0 1 0 1 0 1 0 1 0'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23f)' opacity='0.13'/></svg>");
@@ -61,10 +80,16 @@ button {
   background: none;
 }
 
+/* Keyboard focus ring: dark navy on light surfaces, white on the dark (blue, ink,
+   purple) ones, so it stays at least 3:1 against what is around it. */
 :focus-visible {
-  outline: 3px solid var(--orange);
+  outline: 3px solid var(--focus-ring, #14295e);
   outline-offset: 3px;
   border-radius: 6px;
+}
+.announce, .nav, .foot, .buybar, .hero, .episodes, .ritual, .ep-kit, .arch, .ask,
+.vs .kitc, .shop-hero, .toast, .kit figure, .pd-stage {
+  --focus-ring: #fff;
 }
 
 .wrap {
@@ -109,10 +134,6 @@ button {
 .b-lime {
   color: var(--lime);
   text-shadow: 0 3px 0 var(--lime-deep), 0 6px 0 #6f8710, 0 14px 22px rgba(0,0,0,0.28);
-}
-.b-orange {
-  color: var(--orange);
-  text-shadow: 0 3px 0 var(--orange-deep), 0 6px 0 #995600, 0 14px 22px rgba(0,0,0,0.25);
 }
 .b-purple {
   color: var(--purple);
@@ -180,11 +201,6 @@ button {
   color: var(--white);
   box-shadow: 0 5px 0 var(--blue-deep);
 }
-.btn.orange {
-  background: var(--orange);
-  color: var(--ink);
-  box-shadow: 0 5px 0 var(--orange-deep);
-}
 .btn.ghost {
   background: transparent;
   color: var(--lime);
@@ -205,4 +221,20 @@ button {
   font-weight: 700;
   cursor: pointer;
   padding: 0;
+}
+
+/* Reduced motion: stop looping animations and make transitions near-instant.
+   (JavaScript-driven animation is handled in the components.) */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

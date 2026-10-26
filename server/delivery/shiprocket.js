@@ -51,3 +51,9 @@ export const createAdhocOrder = (config, payload) => request(config, 'POST', '/o
 export const assignAwb = (config, shipmentId) => request(config, 'POST', '/courier/assign/awb', { shipment_id: shipmentId });
 export const requestPickup = (config, shipmentId) => request(config, 'POST', '/courier/generate/pickup', { shipment_id: [shipmentId] });
 export const trackAwb = (config, awb) => request(config, 'GET', `/courier/track/awb/${encodeURIComponent(awb)}`);
+export const serviceability = (config, deliveryPin, weightKg) =>
+  request(
+    config,
+    'GET',
+    `/courier/serviceability/?pickup_postcode=${encodeURIComponent(config.pickupPin)}&delivery_postcode=${encodeURIComponent(deliveryPin)}&weight=${weightKg}&cod=0`
+  );

@@ -3,29 +3,31 @@ import PropTypes from 'prop-types';
 import { PRICE, formatINR, EPISODES } from '../../data/episodes';
 import { kitSVG } from '../../utils/svgGenerators';
 import { Zap } from 'lucide-react';
+import { KIT_SLUG } from '../../data/products';
 
-export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView }) {
+export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView, productSlug }) {
   const [visible, setVisible] = useState(false);
+  // The bar sells the kit, so it only belongs on the home page and the kit's own page.
+  const isKitPage = currentView === 'product' && productSlug === KIT_SLUG;
+  const enabled = currentView === 'home' || isKitPage;
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      if (currentView === 'track') {
-        // Order tracking isn't a shopping page; the bar would cover the timeline.
-        setVisible(false);
-      } else if (currentView === 'home') {
-        // Show after scrolling past hero (~450px) and hide near buy box if needed
-        setVisible(scrollY > 480);
-      } else {
-        // On episode or product details page, show after ~400px
-        setVisible(scrollY > 400);
-      }
-    };
+    if (!enabled) {
+      setVisible(false);
+      return undefined;
+    }
+    // Room at the bottom of the page so the bar never covers the footer.
+    document.body.classList.add('has-buybar');
+    const showAfter = currentView === 'home' ? 480 : 400;
+    const handleScroll = () => setVisible(window.scrollY > showAfter);
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentView]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.body.classList.remove('has-buybar');
+    };
+  }, [enabled, currentView]);
 
   return (
     <div className={`buybar ${visible ? 'on' : ''}`} aria-hidden={!visible}>
@@ -36,7 +38,7 @@ export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView }) {
         />
         <div className="bx">
           <b>The Complete Kit</b>
-          <small>Sachets of all six episodes · collector box · snap pouch</small>
+          <small>All six sachets · collector box · snap pouch</small>
         </div>
         <span className="pr">{formatINR(PRICE)}</span>
         <button
@@ -44,15 +46,14 @@ export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView }) {
           onClick={() => onAddToCart && onAddToCart(1)}
           tabIndex={visible ? 0 : -1}
         >
-          Add to Cart
+          Add to cart
         </button>
         <button
           className="btn blue"
-          style={{ padding: '12px 16px' }}
           onClick={() => onBuyNow && onBuyNow(1)}
           tabIndex={visible ? 0 : -1}
         >
-          <Zap size={16} fill="currentColor" /> Buy with Razorpay
+          <Zap size={16} fill="currentColor" /> Buy now
         </button>
       </div>
     </div>
@@ -62,5 +63,6 @@ export default function StickyBuyBar({ onAddToCart, onBuyNow, currentView }) {
 StickyBuyBar.propTypes = {
   onAddToCart: PropTypes.func.isRequired,
   onBuyNow: PropTypes.func.isRequired,
-  currentView: PropTypes.string.isRequired
+  currentView: PropTypes.string.isRequired,
+  productSlug: PropTypes.string
 };

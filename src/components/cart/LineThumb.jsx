@@ -5,14 +5,14 @@ import { productShape } from '../../lib/propShapes';
 
 // Kit artwork is generated once and reused.
 let kitArtCache = null;
-const kitArt = () => (kitArtCache ??= kitSVG(EPISODES));
+const kitArt = () => (kitArtCache ??= kitSVG(EPISODES, 'cart-kit'));
 
 export default function LineThumb({ product }) {
   if (product.type === 'kit') {
     return <div className="thumb" dangerouslySetInnerHTML={{ __html: kitArt() }} />;
   }
   if (product.episode) {
-    return <div className="thumb" style={{ background: product.episode.pal.soft }} dangerouslySetInnerHTML={{ __html: sachetSVG(product.episode) }} />;
+    return <div className="thumb" style={{ background: product.episode.pal.soft }} dangerouslySetInnerHTML={{ __html: sachetSVG(product.episode, {}, `cart-${product.episode.id}`) }} />;
   }
   return (
     <div className="thumb thumb-img">

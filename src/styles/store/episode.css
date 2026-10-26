@@ -303,3 +303,20 @@
   .fact.look { grid-template-columns: 1fr; }
   .ep-kit .wrap { grid-template-columns: 1fr; }
 }
+
+/* Light themes with dark hero text: full opacity keeps it at 4.5:1 or more. */
+.ep-hero.ink-dark .crumb-btn,
+.ep-hero.ink-dark .lede,
+.ep-hero.ink-dark .cta-row .note {
+  opacity: 1;
+}
+.ep-hero.ink-dark .crumbs {
+  font-weight: 700;
+}
+.ep-hero {
+  --focus-ring: var(--ep-ink);
+}
+/* Mood chips: the pale ink was unreadable on the pale chip; use the dark tone. */
+.fact .tag.m {
+  color: var(--ep-deep, #223);
+}

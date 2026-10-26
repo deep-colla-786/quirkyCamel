@@ -12,6 +12,10 @@ import crypto from 'node:crypto';
 import { getDb } from './db.js';
 import { HttpError } from './http.js';
 import { saveCustomerDetails } from './auth.js';
+import { clientIp } from './http.js';
+import { createLimiter } from './rateLimit.js';
+import { newGuestToken, guestTokenMatches } from './guestOrders.js';
+import { ObjectId } from 'mongodb';
 import { removePurchased } from './savedItems.js';
 import { catalogChanged, savedItemsChanged } from './events.js';
 import { createShipment } from './delivery/shipments.js';
@@ -58,6 +62,20 @@ function priceLine(p, slug, qty) {
   return { slug, name: p.name, price: p.price, qty };
 }
 
+// Guest checkout: an order without an account gets a private token (only its hash is
+// stored). The buyer's tracking link carries the token; it can also attach the order to
+// an account created afterwards.
+const guestOrdersByIp = createLimiter({ windowMs: 60 * 60 * 1000, max: 20, message: 'Too many orders from this network. Please try again later.' });
+const EMAIL_RE = /^[^\s@]{1,64}@(?:[^\s@.]{1,63}\.)+[^\s@.]{2,63}$/;
+
+function guestFields(user, req) {
+  if (user) return { fields: { userId: user._id }, token: null };
+  guestOrdersByIp.take(clientIp(req));
+  const { token, hash } = newGuestToken();
+  return { fields: { userId: null, guest: true, guestTokenHash: hash }, token };
+}
+
+
 async function validateCheckout(env, user, body) {
   const wanted = readCartLines(body.items);
   const db = await getDb(env);
@@ -68,7 +86,7 @@ async function validateCheckout(env, user, body) {
   const c = body.customer || {};
   const customer = {
     name: clip(c.name, 80),
-    email: clip(c.email, 254).toLowerCase() || user.email,
+    email: clip(c.email, 254).toLowerCase() || user?.email || '',
     phone: clip(c.phone, 20),
     addr: clip(c.addr),
     city: clip(c.city, 80),
@@ -80,6 +98,7 @@ async function validateCheckout(env, user, body) {
     throw new HttpError(400, 'Delivery details are incomplete.');
   }
   if (!INDIAN_STATES.includes(customer.state)) throw new HttpError(400, 'Please choose the delivery state.');
+  if (!EMAIL_RE.test(customer.email)) throw new HttpError(400, 'Please enter a valid email address for your invoice.');
   const amount = items.reduce((sum, it) => sum + it.price * it.qty, 0) * 100; // paise
   return { items, customer, amount };
 }
@@ -93,13 +112,26 @@ async function takeStock(db, items) {
   }
 }
 
-async function afterPaid(env, db, order, user) {
+// Link to the order's tracking page for the invoice email (needs PUBLIC_URL, the store's
+// public address). Guests' links carry their private token.
+function trackingUrl(env, order, guestToken) {
+  let base = String(env.PUBLIC_URL || '');
+  if (!base) return null;
+  while (base.endsWith('/')) base = base.slice(0, -1);
+  const query = guestToken ? '?t=' + encodeURIComponent(guestToken) : '';
+  return `${base}/track/${order._id}${query}`;
+}
+
+// `guestToken` (guest orders) goes into the tracking link in the invoice email.
+async function afterPaid(env, db, order, user, guestToken = null) {
   await takeStock(db, order.items);
-  await removePurchased(db, order.userId, order.items);
   catalogChanged(); // stock went down
-  savedItemsChanged(order.userId); // the buyer's other open pages drop the bought items
+  if (order.userId) {
+    await removePurchased(db, order.userId, order.items);
+    savedItemsChanged(order.userId); // the buyer's other open pages drop the bought items
+  }
   // Don't make the shopper wait for SMTP or the courier; results are recorded on the order.
-  sendOrderEmails(env, order, user).catch((err) => console.error('[mail]', err));
+  sendOrderEmails(env, order, user, { trackUrl: trackingUrl(env, order, guestToken) }).catch((err) => console.error('[mail]', err));
   createShipment(env, order).catch((err) => console.error('[delivery]', err));
 }
 
@@ -119,7 +151,7 @@ const publicOrder = (o) => ({
   paidAt: o.paidAt || null
 });
 
-export async function createOrder(env, user, body) {
+export async function createOrder(env, user, body, req) {
   const { keyId, keySecret, configured } = razorpayConfig(env);
   if (!configured) return { configured: false };
   const { items, customer, amount } = await validateCheckout(env, user, body);
@@ -136,7 +168,7 @@ export async function createOrder(env, user, body) {
       receipt: 'qc_' + Date.now(),
       notes: {
         items: clip(items.map((it) => `${it.name} x${it.qty}`).join(', ')),
-        user_id: String(user._id),
+        user_id: user ? String(user._id) : 'guest',
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
@@ -150,8 +182,9 @@ export async function createOrder(env, user, body) {
   if (!res.ok) throw new HttpError(502, data?.error?.description || 'Could not create the Razorpay order.');
 
   const db = await getDb(env);
+  const guest = guestFields(user, req);
   await db.collection('orders').insertOne({
-    userId: user._id,
+    ...guest.fields,
     razorpayOrderId: data.id,
     status: 'created',
     mode: 'razorpay',
@@ -161,7 +194,7 @@ export async function createOrder(env, user, body) {
     customer,
     createdAt: new Date()
   });
-  await saveCustomerDetails(env, user._id, customer);
+  if (user) await saveCustomerDetails(env, user._id, customer);
   return { configured: true, keyId, orderId: data.id, amount: data.amount, currency: data.currency };
 }
 
@@ -181,23 +214,31 @@ export async function verifyPayment(env, user, body) {
 
   const db = await getDb(env);
   const order = await db.collection('orders').findOneAndUpdate(
-    { razorpayOrderId: orderId, userId: user._id },
+    { razorpayOrderId: orderId, userId: user ? user._id : null },
     { $set: { status: 'paid', razorpayPaymentId: paymentId, paidAt: new Date() } },
     { returnDocument: 'after' }
   );
   if (!order) throw new HttpError(404, 'Order not found for this account.');
-  await afterPaid(env, db, order, user);
-  return { verified: true, order: publicOrder(order) };
+  // A guest's tracking token is issued now that the order is paid (only its hash is kept).
+  let guestToken = null;
+  if (order.guest) {
+    const fresh = newGuestToken();
+    guestToken = fresh.token;
+    await db.collection('orders').updateOne({ _id: order._id }, { $set: { guestTokenHash: fresh.hash } });
+  }
+  await afterPaid(env, db, order, user, guestToken);
+  return { verified: true, order: publicOrder(order), guestToken };
 }
 
 // Used only while Razorpay keys are placeholders, so the full flow (and the
 // database records) can be tried end to end without a payment gateway.
-export async function createDemoOrder(env, user, body) {
+export async function createDemoOrder(env, user, body, req) {
   if (razorpayConfig(env).configured) throw new HttpError(403, 'Demo orders are disabled once Razorpay is configured.');
   const { items, customer, amount } = await validateCheckout(env, user, body);
   const db = await getDb(env);
+  const guest = guestFields(user, req);
   const doc = {
-    userId: user._id,
+    ...guest.fields,
     status: 'paid',
     mode: 'demo',
     items,
@@ -208,10 +249,10 @@ export async function createDemoOrder(env, user, body) {
     paidAt: new Date()
   };
   const { insertedId } = await db.collection('orders').insertOne(doc);
-  await saveCustomerDetails(env, user._id, customer);
+  if (user) await saveCustomerDetails(env, user._id, customer);
   const order = { ...doc, _id: insertedId };
-  await afterPaid(env, db, order, user);
-  return { order: publicOrder(order) };
+  await afterPaid(env, db, order, user, guest.token);
+  return { order: publicOrder(order), guestToken: guest.token };
 }
 
 export async function listOrders(env, user) {
@@ -223,4 +264,15 @@ export async function listOrders(env, user) {
     .limit(50)
     .toArray();
   return { orders: orders.map(publicOrder) };
+}
+
+// After a guest order, the buyer can create an account and adopt the order with its token.
+export async function claimGuestOrder(env, user, body) {
+  if (!ObjectId.isValid(String(body.orderId || ''))) throw new HttpError(404, 'Order not found.');
+  const db = await getDb(env);
+  const order = await db.collection('orders').findOne({ _id: new ObjectId(String(body.orderId)), userId: null });
+  if (!order || !guestTokenMatches(order, body.token)) throw new HttpError(404, 'Order not found.');
+  await db.collection('orders').updateOne({ _id: order._id }, { $set: { userId: user._id }, $unset: { guestTokenHash: '' } });
+  await db.collection('shipments').updateOne({ orderId: order._id }, { $set: { userId: user._id } });
+  return { ok: true };
 }

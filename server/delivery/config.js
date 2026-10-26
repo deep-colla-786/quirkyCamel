@@ -14,6 +14,8 @@ export function deliveryConfig(env) {
     // Where parcels start (used for the demo route; live pickups use the Shiprocket location).
     pickupCity: String(env.SHIPROCKET_PICKUP_CITY || 'Mumbai').trim(),
     pickupState: String(env.SHIPROCKET_PICKUP_STATE || 'Maharashtra').trim(),
+    // PIN code of the pickup address, for delivery-time checks on product pages.
+    pickupPin: String(env.SHIPROCKET_PICKUP_PIN || '').trim(),
     webhookToken: String(env.SHIPROCKET_WEBHOOK_TOKEN || ''),
     // Parcel size for the kit-sized box (cm) and weight per item (kg).
     box: {

@@ -157,7 +157,7 @@ export async function listOrders(env) {
     orders: rows.map((o) => ({
       id: String(o._id),
       invoice: o.status === 'paid' ? invoiceNumber(o) : null,
-      account: o.user[0]?.email || '(deleted user)',
+      account: o.user[0]?.email || (o.guest ? 'Guest checkout' : '(deleted account)'),
       customer: o.customer,
       items: o.items || [{ name: 'The Complete Kit', qty: o.quantity || 1, price: o.amount / 100 / (o.quantity || 1) }],
       amount: o.amount / 100,

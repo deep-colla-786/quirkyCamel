@@ -84,24 +84,24 @@ export default function CompareSection({ onAddToCart, onNavigateToProduct }) {
                 <span className="mk">✓</span>
                 <span>
                   <small>GIFTING</small>
-                  <b>Six moods in one deluxe collector box</b> — a gift they’ll never forget
+                  <b>Six moods in one collector box</b> — a gift they’ll never forget
                 </span>
               </li>
             </ul>
 
             <div className="cta-row" style={{ marginTop: '22px' }}>
               <button className="btn lime" onClick={() => onAddToCart && onAddToCart(1)}>
-                Add the kit · {formatINR(PRICE)}
+                Add the kit to cart · {formatINR(PRICE)}
               </button>
               <button
                 className="btn-text"
                 onClick={onNavigateToProduct}
-                style={{ color: '#c4d3f3', textDecoration: 'underline', fontSize: '13.5px' }}
+                style={{ color: '#c8d6f4', textDecoration: 'underline', fontSize: '13.5px' }}
               >
-                View Full Product Specs →
+                View full product specs →
               </button>
             </div>
-            <p style={{ fontSize: '13px', color: '#c4d3f3', marginTop: '8px' }}>
+            <p style={{ fontSize: '13px', color: '#c8d6f4', marginTop: '8px' }}>
               That’s about {formatINR(perEp)} per fragrance episode.
             </p>
           </div>

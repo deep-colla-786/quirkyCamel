@@ -5,12 +5,15 @@
 // Lifecycle: payment confirmed -> createShipment (Shiprocket order + AWB + pickup, or the
 // demo courier) -> tracking updates arrive by webhook, by the periodic sync, or (demo)
 // from the simulated route -> the customer's open pages are told to refresh.
+import crypto from 'node:crypto';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../db.js';
 import { HttpError } from '../http.js';
 import { invoiceNumber } from '../mailer.js';
+import { guestTokenMatches } from '../guestOrders.js';
 import { shipmentChanged } from '../events.js';
 import { deliveryConfig } from './config.js';
+import { MIN_WEBHOOK_TOKEN } from '../config.js';
 import * as shiprocket from './shiprocket.js';
 import { planRoute, demoBooking, istString } from './demo.js';
 import { normalizeScan, mergeScans, stageFrom, parseIst } from './status.js';
@@ -176,16 +179,26 @@ async function applyUpdate(db, shipment, update) {
 
 // POST /api/delivery/updates — Shiprocket's tracking webhook. Always answers 200 for
 // unknown AWBs (Shiprocket expects 200); a wrong token is refused.
+// Constant-time comparison, so response timing doesn't leak the token.
+function sameToken(given, expected) {
+  const a = Buffer.from(String(given || ''));
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export async function handleWebhook(env, req, body) {
   const config = deliveryConfig(env);
-  if (config.webhookToken && req.headers['x-api-key'] !== config.webhookToken) {
-    throw new HttpError(401, 'Invalid token.');
+  // Without a strong token anyone could post fake tracking, so the webhook stays off.
+  if (config.webhookToken.length < MIN_WEBHOOK_TOKEN) {
+    throw new HttpError(503, `Webhook disabled: set SHIPROCKET_WEBHOOK_TOKEN (${MIN_WEBHOOK_TOKEN}+ characters).`);
   }
+  if (!sameToken(req.headers['x-api-key'], config.webhookToken)) throw new HttpError(401, 'Invalid token.');
   const awb = String(body?.awb || '').slice(0, 40);
   if (!awb) return { ok: true };
+  const update = { ...body, scans: Array.isArray(body.scans) ? body.scans.slice(0, 500).filter((s) => s && typeof s === 'object') : [] };
   const db = await getDb(env);
   const shipment = await shipments(db).findOne({ awb });
-  if (shipment) await applyUpdate(db, shipment, body);
+  if (shipment) await applyUpdate(db, shipment, update);
   return { ok: true };
 }
 
@@ -305,10 +318,12 @@ const toId = (id) => {
 };
 
 // The signed-in customer's tracking for one of their orders.
-export async function trackingForUser(env, user, orderId) {
+// Tracking for one order: its owner (signed in), or a guest holding the order's token.
+export async function trackingForUser(env, user, orderId, token) {
   const db = await getDb(env);
-  const order = await db.collection('orders').findOne({ _id: toId(orderId), userId: user._id, status: 'paid' });
-  if (!order) throw new HttpError(404, 'Order not found.');
+  const order = await db.collection('orders').findOne({ _id: toId(orderId), status: 'paid' });
+  const isOwner = Boolean(order && user && order.userId && String(order.userId) === String(user._id));
+  if (!order || !(isOwner || guestTokenMatches(order, token))) throw new HttpError(404, 'Order not found.');
   const shipment = await shipments(db).findOne({ orderId: order._id });
   return {
     order: { id: String(order._id), invoiceNumber: invoiceNumber(order), items: order.items, amount: order.amount / 100, paidAt: order.paidAt },

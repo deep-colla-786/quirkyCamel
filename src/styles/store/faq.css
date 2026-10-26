@@ -30,7 +30,7 @@
   background: var(--white);
   border-radius: 999px;
   padding: 0 16px;
-  box-shadow: inset 0 0 0 2px #d9dce4;
+  box-shadow: inset 0 0 0 2px #8892ab;
   margin-bottom: 18px;
 }
 .qsearch:focus-within {
@@ -146,4 +146,11 @@
 @media (max-width: 860px) {
   .faq .wrap { grid-template-columns: 1fr; }
   .faq-side { position: static; }
+}
+
+/* iPhones zoom into inputs smaller than 16px. */
+@media (max-width: 760px), (pointer: coarse) {
+  .qsearch input {
+    font-size: 16px;
+  }
 }

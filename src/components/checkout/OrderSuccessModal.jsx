@@ -4,6 +4,14 @@ import { formatINR, EPISODES } from '../../data/episodes';
 import PropTypes from 'prop-types';
 import { CheckCircle2, ArrowRight, X, Truck } from 'lucide-react';
 import { catalogShape, customerShape } from '../../lib/propShapes';
+import { STORE_POLICY } from '../../data/products';
+import useDialog from '../../hooks/useDialog';
+
+// A guest's tracking link carries the order's private token.
+function trackHref({ trackId, trackToken }) {
+  const query = trackToken ? '?t=' + encodeURIComponent(trackToken) : '';
+  return `/track/${trackId}${query}`;
+}
 
 export default function OrderSuccessModal({
   isOpen,
@@ -11,7 +19,8 @@ export default function OrderSuccessModal({
   paymentData,
   customerData,
   items = [],
-  catalog
+  catalog,
+  onCreateAccount
 }) {
   useEffect(() => {
     if (isOpen) {
@@ -19,7 +28,8 @@ export default function OrderSuccessModal({
         confetti({
           particleCount: 80,
           spread: 70,
-          origin: { y: 0.6 }
+          origin: { y: 0.6 },
+          disableForReducedMotion: true
         });
       } catch {
         // Confetti is decorative only; if it fails the confirmation still shows.
@@ -27,10 +37,12 @@ export default function OrderSuccessModal({
     }
   }, [isOpen]);
 
+  const dialogRef = useDialog(isOpen && Boolean(paymentData), onClose);
+
   if (!isOpen || !paymentData) return null;
 
   return (
-    <div className="order-success-scrim" role="dialog" aria-modal="true">
+    <div ref={dialogRef} className="order-success-scrim" role="dialog" aria-modal="true" aria-labelledby="order-success-title">
       <div className="order-success-card">
         <button className="success-close-btn" onClick={onClose} aria-label="Close confirmation">
           <X size={20} />
@@ -41,7 +53,7 @@ export default function OrderSuccessModal({
             <CheckCircle2 size={48} color="#C4E539" />
           </div>
           <span className="success-tag">PAYMENT CONFIRMED VIA RAZORPAY</span>
-          <h2>Your Quirky Camels are on the way!</h2>
+          <h2 id="order-success-title">Your Quirky Camels are on the way!</h2>
           <p>We’ve received your order and are packing your sealed attar sachets in the collector box.</p>
         </div>
 
@@ -65,7 +77,7 @@ export default function OrderSuccessModal({
             </div>
             <div>
               <span className="r-label">Estimated Delivery</span>
-              <b className="r-val">2 - 4 Business Days</b>
+              <b className="r-val">{STORE_POLICY.deliveryEstimate}</b>
             </div>
           </div>
 
@@ -77,7 +89,7 @@ export default function OrderSuccessModal({
             </p>
             {customerData?.isgift && customerData?.gift && (
               <div className="receipt-gift-note">
-                <span>Gift Message Attached:</span> “{customerData.gift}”
+                <span>Gift note attached:</span> “{customerData.gift}”
               </div>
             )}
           </div>
@@ -113,7 +125,7 @@ export default function OrderSuccessModal({
         {/* Buttons */}
         <div className="success-actions">
           {paymentData.trackId && (
-            <a className="btn ghost-dark" href={`#track/${paymentData.trackId}`} onClick={onClose}>
+            <a className="btn ghost-dark" href={trackHref(paymentData)} onClick={onClose}>
               <Truck size={16} /> Track your order
             </a>
           )}
@@ -121,6 +133,15 @@ export default function OrderSuccessModal({
             Continue Exploring <ArrowRight size={16} />
           </button>
         </div>
+        {onCreateAccount && paymentData.trackToken && (
+          <p className="success-guest">
+            Checked out as a guest? Your tracking link is above.{' '}
+            <button type="button" onClick={() => onCreateAccount(paymentData)}>
+              Create an account
+            </button>{' '}
+            to keep this order and see it any time.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -133,8 +154,10 @@ OrderSuccessModal.propTypes = {
     orderId: PropTypes.string,
     paymentId: PropTypes.string,
     amount: PropTypes.number,
-    trackId: PropTypes.string
+    trackId: PropTypes.string,
+    trackToken: PropTypes.string
   }),
+  onCreateAccount: PropTypes.func,
   customerData: customerShape,
   items: PropTypes.arrayOf(PropTypes.shape({
     slug: PropTypes.string.isRequired,

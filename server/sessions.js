@@ -3,14 +3,14 @@
 //
 // - The token is 32 random bytes in an HttpOnly cookie; only its SHA-256 hash is stored,
 //   so a leaked database can't be replayed as live sessions.
-// - Store sessions last 30 days. Admin sessions end after 30 minutes without activity
-//   and 8 hours at most, and their cookie is only sent to /api/admin.
+// - Store sessions end after 7 days without activity and 30 days at most. Admin sessions
+//   end after 30 minutes without activity and 8 hours at most, and their cookie is only sent to /api/admin.
 // - Signing in replaces the session the browser already had (no session fixation), and
 //   each user keeps at most MAX_PER_USER sessions per scope (the oldest are ended).
 import crypto from 'node:crypto';
 import { ObjectId } from 'mongodb';
 import { getDb } from './db.js';
-import { HttpError, parseCookies, setCookie, clientIp } from './http.js';
+import { HttpError, parseCookies, setCookie, clientIp, isHttps, isLocalRequest } from './http.js';
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -19,12 +19,13 @@ const MAX_PER_USER = 10;
 const TOUCH_EVERY_MS = MINUTE; // how often lastSeenAt is written back
 
 export const SCOPES = {
-  store: { cookie: 'qc_session', path: '/', sameSite: 'Lax', lifetimeMs: 30 * DAY, idleMs: null },
+  store: { cookie: 'qc_session', path: '/', sameSite: 'Lax', lifetimeMs: 30 * DAY, idleMs: 7 * DAY },
   admin: { cookie: 'qc_admin_session', path: '/api/admin', sameSite: 'Strict', lifetimeMs: 8 * HOUR, idleMs: 30 * MINUTE }
 };
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
-const isSecure = (req, env) => env.NODE_ENV === 'production' || req.headers['x-forwarded-proto'] === 'https';
+// Secure (HTTPS-only) everywhere except local development on localhost / the LAN.
+const isSecure = (req, env) => env.NODE_ENV === 'production' || isHttps(req) || !isLocalRequest(req);
 const userAgent = (req) => String(req.headers['user-agent'] || '').slice(0, 300);
 // Sessions saved before scopes existed belong to the store.
 const scopeFilter = (scope) => (scope === 'store' ? { scope: { $in: ['store', null] } } : { scope });

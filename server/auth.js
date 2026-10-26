@@ -6,29 +6,22 @@ import { getDb } from './db.js';
 import { HttpError, clientIp } from './http.js';
 import { hashPassword, verifyPassword } from './passwords.js';
 import { startSession, getSession, endSession, endUserSessions } from './sessions.js';
+import { createLimiter } from './rateLimit.js';
+import { passwordProblem } from './passwordPolicy.js';
 
 // Compared against when the email doesn't exist, so response time doesn't reveal it.
 const DUMMY_HASH = hashPassword('not-a-real-password');
 
-// Brute-force guard: at most 8 failed logins per email+IP in 15 minutes (in memory,
-// per process; use a shared store such as Redis if you run several servers).
-const failures = new Map();
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_FAILURES = 8;
-
-function checkRateLimit(key) {
-  const entry = failures.get(key);
-  if (entry && Date.now() - entry.first < WINDOW_MS && entry.count >= MAX_FAILURES) {
-    throw new HttpError(429, 'Too many attempts. Please wait a few minutes and try again.');
-  }
-}
-
-function recordFailure(key) {
-  const now = Date.now();
-  const entry = failures.get(key);
-  if (!entry || now - entry.first >= WINDOW_MS) failures.set(key, { first: now, count: 1 });
-  else entry.count += 1;
-}
+// Brute-force and flood guards (in memory, per process):
+// - failed logins: 8 per email+IP and 20 per email from any IP, per 15 minutes (the
+//   per-email limit can't be dodged by changing IP);
+// - any login attempt: 30 per IP per 15 minutes; sign-ups: 10 per IP per hour (each one
+//   runs the deliberately slow password hash).
+const MINUTE = 60 * 1000;
+const failedByEmailIp = createLimiter({ windowMs: 15 * MINUTE, max: 8 });
+const failedByEmail = createLimiter({ windowMs: 15 * MINUTE, max: 20 });
+const attemptsByIp = createLimiter({ windowMs: 15 * MINUTE, max: 30 });
+const signupsByIp = createLimiter({ windowMs: 60 * MINUTE, max: 10, message: 'Too many sign-ups from this network. Please try again later.' });
 
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 const EMAIL_RE = /^[^\s@]{1,64}@(?:[^\s@.]{1,63}\.)+[^\s@.]{2,63}$/;
@@ -69,8 +62,8 @@ function validateSignup(body) {
   if (name.length < 2) throw new HttpError(400, 'Please enter your name.');
   if (!EMAIL_RE.test(email)) throw new HttpError(400, 'Please enter a valid email address.');
   if (phone && !PHONE_RE.test(phone)) throw new HttpError(400, 'Please enter a valid 10-digit mobile number.');
-  if (password.length < 8) throw new HttpError(400, 'Password must be at least 8 characters.');
-  if (password.length > 200) throw new HttpError(400, 'Password is too long.');
+  const weak = passwordProblem(password, { email, name });
+  if (weak) throw new HttpError(400, weak);
   return { name, email, phone, password };
 }
 
@@ -78,18 +71,22 @@ function validateSignup(body) {
 async function verifyCredentials(req, env, body, scope) {
   const email = clean(body.email, 254).toLowerCase();
   const password = String(body.password || '');
-  const key = `${email}|${clientIp(req)}`;
-  checkRateLimit(key);
+  const ip = clientIp(req);
+  const key = `${email}|${ip}`;
+  attemptsByIp.take(ip);
+  failedByEmailIp.check(key);
+  failedByEmail.check(email);
 
   const db = await getDb(env);
   const user = await db.collection('users').findOne({ email });
   const ok = await verifyPassword(password, user ? user.passwordHash : await DUMMY_HASH);
   if (!user || !ok) {
-    recordFailure(key);
+    failedByEmailIp.hit(key);
+    failedByEmail.hit(email);
     await logEvent(req, env, { type: 'failed', scope, email, userId: user?._id ?? null });
     throw new HttpError(401, 'Incorrect email or password.');
   }
-  failures.delete(key);
+  failedByEmailIp.reset(key);
   return user;
 }
 
@@ -115,6 +112,7 @@ export async function requireUser(req, res, env) {
 }
 
 export async function signup(req, res, env, body) {
+  signupsByIp.take(clientIp(req));
   const { name, email, phone, password } = validateSignup(body);
   const db = await getDb(env);
   const now = new Date();
@@ -132,7 +130,8 @@ export async function signup(req, res, env, body) {
       lastLoginAt: now
     });
   } catch (err) {
-    if (err.code === 11000) throw new HttpError(409, 'An account with this email already exists. Try logging in.');
+    // Same wording whether or not the address is taken, as far as possible without email verification.
+    if (err.code === 11000) throw new HttpError(409, 'We couldn’t create an account with these details. If you already have one, log in or reset your password.');
     throw err;
   }
   await startSession(req, res, env, 'store', result.insertedId);

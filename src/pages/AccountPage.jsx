@@ -5,10 +5,9 @@ import { ordersApi } from '../lib/api';
 import { formatINR } from '../data/episodes';
 import { userShape } from '../lib/propShapes';
 import DeliveryBadge from '../components/delivery/DeliveryBadge';
+import DeleteAccount from '../components/account/DeleteAccount';
 import { arrivalText } from '../components/delivery/deliveryFormat';
-
-const fmtDate = (d) =>
-  new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+import { fmtDate } from '../lib/format';
 
 const orderStatusLabel = (o) => {
   if (o.mode === 'demo') return 'Demo order';
@@ -16,7 +15,7 @@ const orderStatusLabel = (o) => {
   return o.status;
 };
 
-export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, refreshKey = 0 }) {
+export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, onDeleted, refreshKey = 0 }) {
   const [orders, setOrders] = useState(null);
   const [error, setError] = useState('');
 
@@ -57,7 +56,7 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, refr
     <div className="account-page">
       <div className="wrap">
         <nav className="crumbs" aria-label="Breadcrumb">
-          <a href="#top">Home</a>
+          <a href="/">Home</a>
           <span>/</span>
           <span aria-current="page">Account</span>
         </nav>
@@ -93,6 +92,7 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, refr
                   : 'Your delivery address is saved at your first checkout'}
               </li>
             </ul>
+            <DeleteAccount onDeleted={onDeleted} />
           </section>
 
           <section className="account-card account-orders">
@@ -103,7 +103,7 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, refr
               <div className="account-empty">
                 <Package size={28} />
                 <p>No orders yet.</p>
-                <a className="btn blue" href="#shop">
+                <a className="btn blue" href="/shop">
                   Shop the kit
                 </a>
               </div>
@@ -122,7 +122,7 @@ export default function AccountPage({ user, onLogin, onLogout, onLogoutAll, refr
                         <span className="order-delivery">
                           <DeliveryBadge shipment={o.delivery} />
                           <span className="order-eta">{arrivalText(o.delivery)}</span>
-                          <a className="order-track" href={`#track/${o.id}`}>
+                          <a className="order-track" href={`/track/${o.id}`}>
                             Track order →
                           </a>
                         </span>
@@ -150,5 +150,6 @@ AccountPage.propTypes = {
   onLogin: PropTypes.func.isRequired,
   onLogout: PropTypes.func.isRequired,
   onLogoutAll: PropTypes.func.isRequired,
+  onDeleted: PropTypes.func.isRequired,
   refreshKey: PropTypes.number
 };

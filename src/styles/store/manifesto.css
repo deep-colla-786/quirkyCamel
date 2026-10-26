@@ -153,3 +153,17 @@
   .mani .wrap { grid-template-columns: 1fr; }
   .speech { right: -2%; }
 }
+
+/* Blue outline text was 2.96:1 on orange; the darker ink passes (6.2:1). */
+.mani .btn.ghost-dark {
+  color: var(--blue-ink);
+  box-shadow: inset 0 0 0 2px var(--blue-ink);
+}
+
+@media (max-width: 640px) {
+  .pillars { grid-template-columns: 1fr; }
+}
+
+@media (pointer: coarse) {
+  .boop { min-height: 44px; }
+}

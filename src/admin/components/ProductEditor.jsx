@@ -6,6 +6,7 @@ import { formatINR } from '../../data/episodes';
 import { productShape } from '../utils/shapes';
 import { initialForm, validate, toFields, discountFrom, priceFromDiscount, isPositive } from '../utils/productForm';
 import RowsEditor from './RowsEditor';
+import useDialog from '../../hooks/useDialog';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const IMAGE_TYPE_RE = /^image\/(?:png|jpe?g|webp)$/;
@@ -161,8 +162,8 @@ DeleteControl.propTypes = { busy: PropTypes.bool.isRequired, onDelete: PropTypes
 
 function builtInNote(isFragrance) {
   return isFragrance
-    ? 'Built-in fragrance: its artwork and episode story come from the site code. Everything below is shown on its product page and shop card.'
-    : 'Built-in product: its artwork comes from the site code. Everything below (prices, discount, stock and all the text) is set here.';
+    ? 'Built-in fragrance: its artwork and episode story come from the site code. Everything below is shown on its product page and shop card. Add a real photo to show it first in the product gallery.'
+    : 'Built-in product: its artwork comes from the site code. Everything below (prices, discount, stock and all the text) is set here. Add a real photo to show it first in the product gallery.';
 }
 
 // Create (product = null) or edit a product. Every customer-facing detail is editable.
@@ -174,6 +175,7 @@ export default function ProductEditor({ product, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const dialogRef = useDialog(true, onClose);
   const set = (k) => (e) => setForm((s) => ({ ...s, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const setRows = (k) => (rows) => setForm((s) => ({ ...s, [k]: rows }));
 
@@ -217,8 +219,8 @@ export default function ProductEditor({ product, onClose, onSaved }) {
   };
 
   return (
-    <div className="ad-modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form className="ad-modal ad-editor-modal" onSubmit={save} noValidate aria-labelledby="pe-title">
+    <div className="ad-modal-scrim" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <form ref={dialogRef} className="ad-modal ad-editor-modal" onSubmit={save} noValidate role="dialog" aria-modal="true" aria-labelledby="pe-title">
         <header>
           <h2 id="pe-title">{isNew ? 'Add a product' : `Edit ${product.name}`}</h2>
           <button type="button" className="ad-icon-btn" onClick={onClose} aria-label="Close">
@@ -253,14 +255,12 @@ export default function ProductEditor({ product, onClose, onSaved }) {
             <input type="number" min="0" inputMode="numeric" value={form.stock} onChange={set('stock')} placeholder="Unlimited" />
           </label>
 
-          {!product?.builtIn && (
-            <ImageField
+          <ImageField
               image={form.image}
               uploading={uploading}
               onPick={pickImage}
               onRemove={() => setForm((s) => ({ ...s, image: null }))}
             />
-          )}
 
           {isFragrance && (
             <>

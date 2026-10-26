@@ -14,7 +14,7 @@ export default function ProductPage({ slug, catalog, catalogLoaded, wishlist, ..
           <>
             <h1>Product not found</h1>
             <p>It may have been removed or is no longer available.</p>
-            <a className="btn blue" href="#shop">Back to the shop</a>
+            <a className="btn blue" href="/shop">Back to the shop</a>
           </>
         ) : (
           <p>Loading…</p>

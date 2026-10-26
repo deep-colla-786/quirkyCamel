@@ -14,7 +14,7 @@ export default function RelatedProducts({ title, products, wishlist, onToggleSav
             product={p}
             saved={wishlist.includes(p.slug)}
             onToggleSaved={onToggleSaved}
-            onAddToCart={(q) => onAddToCart(q)}
+            onAddToCart={onAddToCart}
           />
         ))}
       </div>

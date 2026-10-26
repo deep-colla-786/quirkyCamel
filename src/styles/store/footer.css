@@ -30,15 +30,43 @@
   gap: 16px;
   margin-bottom: 14px;
 }
-.foot nav button {
+.foot nav button,
+.foot nav a {
   color: var(--white);
   font-weight: 600;
   font-size: 14px;
+  text-decoration: none;
 }
-.foot nav button:hover {
+.foot nav button:hover,
+.foot nav a:hover {
   color: var(--lime);
 }
 .foot small {
-  color: #c4d3f3;
+  color: #c8d6f4;
   font-size: 13px;
+}
+
+.foot-contact {
+  display: block;
+  margin-bottom: 8px;
+}
+.foot-contact a {
+  color: inherit;
+}
+
+/* Touch screens: footer links tall enough to tap (44px). */
+@media (pointer: coarse) {
+  .foot nav {
+    gap: 0 8px;
+  }
+  .foot nav button,
+  .foot nav a {
+    min-height: 44px;
+    min-width: 44px;
+    padding-inline: 6px;
+  }
+  .foot-contact a {
+    display: inline-block;
+    padding-block: 12px;
+  }
 }

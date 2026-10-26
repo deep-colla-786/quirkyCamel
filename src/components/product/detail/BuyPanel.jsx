@@ -5,6 +5,19 @@ import { EPISODES, formatINR } from '../../../data/episodes';
 import { KIT_SLUG, STORE_POLICY, MAX_QTY } from '../../../data/products';
 import { kitSVG } from '../../../utils/svgGenerators';
 import { productShape } from '../../../lib/propShapes';
+import { deliveryApi } from '../../../lib/api';
+import { fmtDay } from '../../delivery/deliveryFormat';
+
+const PIN_RE = /^[1-9]\d{5}$/;
+
+// Text for the delivery-time answer from /api/delivery/estimate.
+function pinMessage(r) {
+  const free = r.freeShipping ? ' Free shipping.' : '';
+  if (r.kind === 'live' && !r.serviceable) return { ok: false, msg: `Sorry, our couriers don’t deliver to ${r.pin} yet.` };
+  if (r.kind === 'live' && r.etd) return { ok: true, msg: `Delivers to ${r.pin} by ${fmtDay(r.etd)} if you order today.${free}` };
+  if (r.kind === 'live') return { ok: true, msg: `We deliver to ${r.pin}.${free}` };
+  return { ok: true, msg: `Typical delivery time to ${r.pin}: ${STORE_POLICY.dispatch.toLowerCase()}, then ${r.estimate}.${free}` };
+}
 
 // Buy box: pack / quantity, gift note, add-to-cart / buy-now and the delivery PIN check.
 // `target` is what the buttons actually buy: the product itself, or the kit for a
@@ -24,16 +37,18 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
 
   const opts = () => ({ slug: target?.slug || KIT_SLUG, ...(isGift ? { gift: giftMsg.trim() } : {}) });
 
-  const checkPin = (e) => {
+  // Asks the courier (when connected) whether this PIN is served and when; otherwise
+  // shows the store's typical delivery time, labelled as typical.
+  const checkPin = async (e) => {
     e.preventDefault();
-    if (!/^[1-9]\d{5}$/.test(pin.trim())) {
+    const code = pin.trim();
+    if (!PIN_RE.test(code)) {
       setPinResult({ ok: false, msg: 'Enter a valid 6-digit PIN code.' });
       return;
     }
-    setPinResult({
-      ok: true,
-      msg: `Estimated delivery to ${pin.trim()}: ${STORE_POLICY.deliveryEstimate}.${STORE_POLICY.freeShipping ? ' Free shipping.' : ''}`
-    });
+    setPinResult({ ok: true, msg: 'Checking…' });
+    const res = await deliveryApi.estimate(code);
+    setPinResult(res.ok ? pinMessage(res.data) : { ok: false, msg: res.data.error || 'Couldn’t check this PIN code right now.' });
   };
 
   return (
@@ -64,33 +79,37 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
             )}
           </span>
           <div className="qty-selector">
-            <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">−</button>
-            <span aria-live="polite">{qty}</span>
-            <button onClick={() => setQty((q) => Math.min(maxQty, q + 1))} aria-label="Increase quantity">+</button>
+            <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label="Decrease quantity">
+              −
+            </button>
+            <output aria-live="polite">{qty}</output>
+            <button onClick={() => setQty((q) => Math.min(maxQty, q + 1))} disabled={qty >= maxQty} aria-label="Increase quantity">
+              +
+            </button>
           </div>
         </div>
       )}
       {ep && buysKit && (
         <div className="pd-incl">
-          <div className="pd-incl-art" dangerouslySetInnerHTML={{ __html: kitSVG(EPISODES) }} />
+          <div className="pd-incl-art" dangerouslySetInnerHTML={{ __html: kitSVG(EPISODES, 'pdp-incl') }} />
           <div>
             <b>Sold in The Complete Kit</b>
             <p>
               {product.name} comes as a sealed sachet alongside the other five episodes. Sachets aren’t sold one by one.
             </p>
-            {KIT ? <a href={`#product/${KIT.slug}`}>View the kit →</a> : <p>The kit is currently unavailable.</p>}
+            {KIT ? <a href={`/product/${KIT.slug}`}>View the kit →</a> : <p>The kit is currently unavailable.</p>}
           </div>
         </div>
       )}
       {ep && !buysKit && KIT && (
         <p className="pd-also-kit">
-          Also in <a href={`#product/${KIT.slug}`}>The Complete Kit</a>, with the other five episodes.
+          Also in <a href={`/product/${KIT.slug}`}>The Complete Kit</a>, with the other five episodes.
         </p>
       )}
 
       <label className="pd-gift">
         <input type="checkbox" checked={isGift} onChange={(e) => setIsGift(e.target.checked)} />
-        <Gift size={18} /> This is a gift: add a free note
+        <Gift size={18} /> This is a gift: add a free gift note
       </label>
       {isGift && (
         <textarea
@@ -99,7 +118,7 @@ export default function BuyPanel({ product, kit, target, available, onAddToCart,
           onChange={(e) => setGiftMsg(e.target.value)}
           maxLength={200}
           placeholder="Wear your weird. Happy birthday!"
-          aria-label="Gift message"
+          aria-label="Gift note"
         />
       )}
 

@@ -22,7 +22,7 @@ export const KIT = {
   eyebrow: 'All six episodes · One box',
   tagline: 'Every situation, ready for whatever your day turns into.',
   description:
-    'The whole Quirky Camel series in one collector box: sealed attar sachets of all six fragrance episodes, plus a snap pouch and carabiner to carry today’s pick. Lost in an oasis, out after dark, fresh from the shower: switch situations whenever your day does.',
+    'The whole Quirky Camel series in one collector box: sealed attar sachets of all six fragrance episodes, plus a snap pouch, carabiner and drawstring bag to carry today’s pick. Lost in an oasis, out after dark, fresh from the shower: switch situations whenever your day does.',
   // Getters read the live kit pricing (see applyKitPricing in episodes.js).
   get price() {
     return PRICE;
@@ -62,11 +62,8 @@ export const FRAGRANCES = EPISODES.map((e) => ({
   occasionTags: e.f.occ.map((o) => OCC_LABELS[o])
 }));
 
-export const PRODUCTS = [KIT, ...FRAGRANCES];
-export const PRODUCTS_BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
-
 // Customer reviews per product slug. Empty until real orders ship; the product
 // page shows an empty state rather than placeholder ratings.
 export const REVIEWS = {};
 
-export const productHash = (slug) => `#product/${slug}`;
+export const productPath = (slug) => `/product/${encodeURIComponent(slug)}`;

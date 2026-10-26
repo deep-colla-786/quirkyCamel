@@ -22,7 +22,7 @@ function fragranceTabs(product) {
           <p className="pd-world">{ep.world}</p>
           <p>{product.description}</p>
           <p><b>The scene:</b> {ep.look}</p>
-          <a className="pd-story-link" href={`#${ep.id}`}>Read the full episode story →</a>
+          <a className="pd-story-link" href={`/episodes/${ep.id}`}>Read the full episode story →</a>
         </div>
       )
     },
@@ -35,9 +35,6 @@ function fragranceTabs(product) {
           <div className="pd-chips">
             {ep.scentTags.map((t) => <span key={t}>{t}</span>)}
           </div>
-          {ep.pending && (
-            <p className="pd-note">Exact notes will be confirmed from the final fragrance formulation.</p>
-          )}
           {ep.note && <p className="pd-note">{ep.note}</p>}
         </div>
       )

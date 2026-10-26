@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { paths } from '../../lib/routes';
+import { BUSINESS } from '../../data/business';
 
 export default function Footer({ onNavigate }) {
   return (
@@ -22,6 +24,25 @@ export default function Footer({ onNavigate }) {
           <button onClick={() => onNavigate('home', 'story')}>Our Story</button>
           <button onClick={() => onNavigate('home', 'faq')}>FAQ</button>
         </nav>
+
+        <nav aria-label="Store policies">
+          <a href={paths.shipping}>Shipping policy</a>
+          <a href={paths.refunds}>Returns &amp; refunds</a>
+          <a href={paths.privacy}>Privacy policy</a>
+          <a href={paths.terms}>Terms of use</a>
+          <a href={paths.contact}>Contact us</a>
+        </nav>
+
+        <small className="foot-contact">
+          <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
+          {BUSINESS.phone && (
+            <>
+              {' · '}
+              <a href={`tel:${BUSINESS.phone.replaceAll(' ', '')}`}>{BUSINESS.phone}</a>
+            </>
+          )}
+          {BUSINESS.address && <> · {BUSINESS.address}</>}
+        </small>
 
         <small>Smell different. Everywhere. · © 2026 Quirky Camel. All rights reserved.</small>
       </div>

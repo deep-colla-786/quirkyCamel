@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Zap, ArrowLeft } from 'lucide-react';
 import { formatINR } from '../../data/episodes';
 import LineThumb from './LineThumb';
+import { paths } from '../../lib/routes';
 import { cartLineShape, customerShape } from '../../lib/propShapes';
 
 // Step 3: order summary and the Razorpay pay button.
@@ -39,7 +40,7 @@ export default function ReviewStep({ lines, itemCount, formData, subtotal, isPay
           <>
             <br />
             <br />
-            <b>Gift Note:</b> “{formData.gift}”
+            <b>Gift note:</b> “{formData.gift}”
           </>
         )}
       </div>
@@ -58,6 +59,12 @@ export default function ReviewStep({ lines, itemCount, formData, subtotal, isPay
           <span>{formatINR(subtotal)}</span>
         </div>
       </div>
+
+      <p className="checkout-privacy">
+        By placing this order you agree to our <a href={paths.terms}>Terms</a>,{' '}
+        <a href={paths.refunds}>Refund policy</a> and <a href={paths.privacy}>Privacy policy</a>. Your address is shared
+        only with our payment and delivery partners.
+      </p>
 
       <div className="dfoot">
         <button className="btn lime wide" onClick={onPay} disabled={isPaying}>

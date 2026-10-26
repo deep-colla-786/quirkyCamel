@@ -58,7 +58,43 @@
   font-variant-numeric: tabular-nums;
 }
 
+.buybar .btn.blue {
+  padding: 12px 16px;
+}
+
+/* Pages that show the bar get room at the bottom so it never covers the footer. */
+body.has-buybar {
+  padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Phones: no thumbnail or title, just the price and the two buttons on one row. */
 @media (max-width: 600px) {
-  .buybar .bt, .buybar .pr { display: none; }
-  .buybar .btn { padding: 10px 14px; font-size: 13px; }
+  .buybar .bt, .buybar .bx { display: none; }
+  .buybar .wrap {
+    gap: 8px;
+    height: 64px;
+  }
+  .buybar .pr {
+    flex: none;
+    font-size: 16px;
+    margin-right: auto;
+  }
+  .buybar .btn,
+  .buybar .btn.blue {
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 13px;
+    gap: 6px;
+  }
+  body.has-buybar {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-width: 380px) {
+  .buybar .btn,
+  .buybar .btn.blue {
+    padding-inline: 10px;
+    font-size: 12.5px;
+  }
+  .buybar .btn.blue svg { display: none; }
 }

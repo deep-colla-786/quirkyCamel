@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useState } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import StickyBuyBar from './components/layout/StickyBuyBar';
@@ -9,28 +9,36 @@ import RazorpayModal from './components/checkout/RazorpayModal';
 import OrderSuccessModal from './components/checkout/OrderSuccessModal';
 import AuthModal from './components/auth/AuthModal';
 import HomePage from './pages/HomePage';
-import EpisodePage from './pages/EpisodePage';
-import AccountPage from './pages/AccountPage';
-import ShopPage from './pages/ShopPage';
-import ProductPage from './pages/ProductPage';
-import TrackingPage from './pages/TrackingPage';
+import PageMeta from './components/layout/PageMeta';
+// Pages other than home load on first visit, so the home page downloads less.
+const EpisodePage = lazy(() => import('./pages/EpisodePage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+const ShopPage = lazy(() => import('./pages/ShopPage'));
+const ProductPage = lazy(() => import('./pages/ProductPage'));
+const TrackingPage = lazy(() => import('./pages/TrackingPage'));
+const InfoPage = lazy(() => import('./pages/InfoPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 import useToast from './hooks/useToast';
 import useCatalog from './hooks/useCatalog';
 import useCart from './hooks/useCart';
 import useSavedItems from './hooks/useSavedItems';
 import useAuth from './hooks/useAuth';
-import useHashRouter from './hooks/useHashRouter';
+import useRouter from './hooks/useRouter';
 import useCheckout from './hooks/useCheckout';
 import useAccountSync from './hooks/useAccountSync';
 import useLiveUpdates from './hooks/useLiveUpdates';
-import { authApi } from './lib/api';
+import { authApi, ordersApi } from './lib/api';
 import { EPISODES, EPISODES_BY_ID, PRICE } from './data/episodes';
-import { KIT_SLUG, productHash } from './data/products';
+import { KIT_SLUG, productPath } from './data/products';
+import { paths } from './lib/routes';
 
 export default function App() {
   const { toastMessage, showToast } = useToast();
   const { catalog, catalogLoaded, loadCatalog } = useCatalog();
-  const { user, setUser, authChecked, auth, openAuth, closeAuth, requireLogin, handleAuthed } = useAuth({ showToast });
+  const { user, setUser, authChecked, auth, openAuth, closeAuth, requireLogin, continueAsGuest, signUpThen, handleAuthed } = useAuth({
+    showToast
+  });
   const cart = useCart({ catalog, showToast, requireLogin });
   const { wishlist, setWishlist, toggleWishlist, recentlyViewed, markViewed } = useSavedItems({ catalog, showToast });
   const account = useAccountSync({
@@ -46,7 +54,7 @@ export default function App() {
   const [shipmentTick, setShipmentTick] = useState(0);
   const onShipment = useCallback(() => setShipmentTick((n) => n + 1), []);
   useLiveUpdates({ userId: user?.id, onCatalog: loadCatalog, onSaved: account.reload, onShipment });
-  const { currentView, productSlug, shopSaved, activeEpisodeId, trackOrderId, goTo, handleNavigate } = useHashRouter({
+  const { currentView, productSlug, shopSaved, activeEpisodeId, trackOrderId, resetToken, infoPage, goTo, handleNavigate } = useRouter({
     onViewProduct: markViewed
   });
   const checkout = useCheckout({
@@ -63,7 +71,7 @@ export default function App() {
     setUser(null);
     cart.setIsCartOpen(false);
     showToast(message);
-    goTo('#top');
+    goTo(paths.home);
   };
 
   const handleLogout = async () => {
@@ -79,7 +87,16 @@ export default function App() {
     signedOut('Logged out on all your devices.');
   };
 
-  const handleSelectEpisode = (epId) => goTo(`#${epId}`);
+  const handleSelectEpisode = (epId) => goTo(paths.episode(epId));
+
+  // After a guest checkout: create an account and adopt that order.
+  const createAccountForOrder = ({ trackId, trackToken }) => {
+    checkout.closeSuccess();
+    signUpThen(async () => {
+      const res = await ordersApi.claim(trackId, trackToken);
+      showToast(res.ok ? 'Your order is now saved in your account.' : res.data.error || 'Could not add the order to your account.');
+    }, 'Create an account to keep this order and track future ones.');
+  };
 
   const currentEpisode = EPISODES_BY_ID[activeEpisodeId] || EPISODES[0];
 
@@ -89,7 +106,7 @@ export default function App() {
         cartCount={cart.cartCount}
         onOpenCart={cart.openCart}
         wishlistCount={wishlist.length}
-        onOpenWishlist={() => goTo('#shop/saved')}
+        onOpenWishlist={() => goTo(paths.saved)}
         currentView={currentView}
         onNavigate={handleNavigate}
         user={user}
@@ -97,7 +114,9 @@ export default function App() {
         onLogin={() => openAuth('login')}
       />
 
+      <PageMeta view={currentView} catalog={catalog} productSlug={productSlug} episode={currentEpisode} infoPage={infoPage} />
       <main>
+        <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
         {currentView === 'home' && (
           <HomePage
             activeEpisodeId={activeEpisodeId}
@@ -105,12 +124,13 @@ export default function App() {
             onBuyNow={cart.handleInstantBuyNow}
             onSelectEpisode={handleSelectEpisode}
             onNavigate={handleNavigate}
-            onOpenProduct={(id) => goTo(productHash(id))}
+            onOpenProduct={(id) => goTo(productPath(id))}
           />
         )}
 
         {currentView === 'episode' && (
           <EpisodePage
+            key={currentEpisode.id}
             episode={currentEpisode}
             onAddToCart={cart.handleAddToCart}
             onSelectEpisode={handleSelectEpisode}
@@ -124,12 +144,13 @@ export default function App() {
             onLogin={(mode) => openAuth(mode)}
             onLogout={handleLogout}
             onLogoutAll={handleLogoutAll}
+            onDeleted={() => signedOut('Your account has been deleted.')}
             refreshKey={shipmentTick}
           />
         )}
 
         {currentView === 'track' && (
-          <TrackingPage orderId={trackOrderId} user={user} authChecked={authChecked} onLogin={() => openAuth('login')} refreshKey={shipmentTick} />
+          <TrackingPage key={trackOrderId} orderId={trackOrderId} user={user} authChecked={authChecked} onLogin={() => openAuth('login')} refreshKey={shipmentTick} />
         )}
 
         {currentView === 'shop' && (
@@ -156,6 +177,13 @@ export default function App() {
             showToast={showToast}
           />
         )}
+
+        {currentView === 'info' && <InfoPage page={infoPage} />}
+
+        {currentView === 'reset' && <ResetPasswordPage token={resetToken} onLogin={() => openAuth('login')} />}
+
+        {currentView === 'notfound' && <NotFoundPage />}
+        </Suspense>
       </main>
 
       <Footer onNavigate={handleNavigate} />
@@ -174,7 +202,7 @@ export default function App() {
         serverError={checkout.checkoutError}
         giftNote={cart.giftNote}
         user={user}
-        onRequireLogin={(action) => requireLogin(action)}
+        onRequireLogin={(action) => requireLogin(action, undefined, { allowGuest: true })}
       />
 
       {/* Demo Razorpay checkout (used while the Razorpay keys are placeholders) */}
@@ -194,12 +222,14 @@ export default function App() {
         customerData={checkout.confirmedCustomer}
         items={checkout.pendingCheckout?.items || []}
         catalog={catalog}
+        onCreateAccount={user ? undefined : createAccountForOrder}
       />
 
       <StickyBuyBar
         onAddToCart={cart.handleAddToCart}
         onBuyNow={cart.handleInstantBuyNow}
         currentView={currentView}
+        productSlug={productSlug}
       />
 
       <AuthModal
@@ -208,6 +238,8 @@ export default function App() {
         reason={auth.reason}
         onClose={closeAuth}
         onAuthed={handleAuthed}
+        allowGuest={auth.allowGuest}
+        onGuest={continueAsGuest}
       />
 
       <Toast message={toastMessage} />

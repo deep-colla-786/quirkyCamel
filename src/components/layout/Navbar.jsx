@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { ShoppingBag, Heart, User } from 'lucide-react';
+import { ShoppingBag, Heart, User, Menu, X } from 'lucide-react';
 import { userShape } from '../../lib/propShapes';
+import { paths } from '../../lib/routes';
+import useDialog from '../../hooks/useDialog';
+
+// Links in the phone/tablet menu: the same as the desktop header, plus Account.
+const MENU_LINKS = [
+  { label: 'Shop', view: 'shop' },
+  { label: 'The Episodes', view: 'home', target: 'episodes' },
+  { label: 'Complete Kit', view: 'product-kit' },
+  { label: 'Our Story', view: 'home', target: 'story' },
+  { label: 'FAQ', view: 'home', target: 'faq' }
+];
 
 export default function Navbar({
   cartCount,
@@ -14,6 +25,16 @@ export default function Navbar({
   authChecked,
   onLogin
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+  // Escape closes, Tab stays inside, focus goes back to the menu button on close.
+  const menuPanelRef = useDialog(menuOpen, closeMenu);
+
+  const goFromMenu = (view, target) => {
+    closeMenu();
+    onNavigate(view, target);
+  };
+
   return (
     <>
       <div className="announce">
@@ -81,8 +102,9 @@ export default function Navbar({
               (user ? (
                 <a
                   className={`account-btn ${currentView === 'account' ? 'active' : ''}`}
-                  href="#account"
+                  href="/account"
                   title="Your account"
+                  aria-label={`${user.name.split(' ')[0]}, your account`}
                 >
                   <span className="account-avatar" aria-hidden="true">
                     {user.name.trim().charAt(0).toUpperCase()}
@@ -90,7 +112,7 @@ export default function Navbar({
                   <span className="account-name">{user.name.split(' ')[0]}</span>
                 </a>
               ) : (
-                <button className="account-btn" onClick={onLogin}>
+                <button className="account-btn" onClick={onLogin} aria-label="Log in">
                   <User size={18} />
                   <span className="account-name">Log in</span>
                 </button>
@@ -100,15 +122,56 @@ export default function Navbar({
               className="cart-btn"
               id="cartBtn"
               onClick={onOpenCart}
-              aria-label="Open cart"
             >
-              <ShoppingBag size={18} />
+              <ShoppingBag size={18} aria-hidden="true" />
               <span>Cart</span>
               <span className="n" id="cartN">{cartCount}</span>
+              <span className="sr"> items</span>
+            </button>
+
+            <button
+              className="menu-btn"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              aria-controls="site-menu"
+            >
+              <Menu size={22} />
             </button>
           </div>
         </div>
       </header>
+
+      {menuOpen && <div className="menu-scrim" onClick={closeMenu} aria-hidden="true" />}
+      <div
+        id="site-menu"
+        ref={menuPanelRef}
+        className={`menu-panel ${menuOpen ? 'open' : ''}`}
+        aria-label="Menu"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="menu-head">
+          <b>Menu</b>
+          <button className="menu-close" onClick={closeMenu} aria-label="Close menu">
+            <X size={20} />
+          </button>
+        </div>
+        <nav aria-label="Mobile navigation">
+          {MENU_LINKS.map(({ label, view, target }) => (
+            <button key={label} className="menu-link" onClick={() => goFromMenu(view, target)}>
+              {label}
+            </button>
+          ))}
+          <a
+            className={`menu-link ${currentView === 'account' ? 'active' : ''}`}
+            href={paths.account}
+            onClick={closeMenu}
+          >
+            Account
+          </a>
+        </nav>
+      </div>
     </>
   );
 }
